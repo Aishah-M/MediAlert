@@ -1,4 +1,4 @@
-package com.example.medialert.ui.theme
+package com.example.medialert.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

@@ -1,4 +1,4 @@
-package com.example.medialert.ui.theme
+package com.example.medialert.theme
 
 import androidx.compose.ui.graphics.Color
 
