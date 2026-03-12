@@ -127,7 +127,10 @@ fun MediAlertApp(
                             selected = currentRoute == item.screen.name,
                             onClick = {
                                 navController.navigate(item.screen.name) {
-                                    popUpTo(MediAlertScreen.Home.name) { saveState = true }
+                                    popUpTo(MediAlertScreen.Home.name) {
+                                            saveState = false  // don't save state so CallScreen is never restored
+                                            inclusive = false
+                                    }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -167,6 +170,9 @@ fun MediAlertApp(
             }
             composable(route = MediAlertScreen.Reminder.name) {
                 ReminderScreen(
+                    onAddClick = {
+                        navController.navigate(MediAlertScreen.EditReminder.name)
+                    }
                 )
             }
             composable(route = MediAlertScreen.Profile.name) {
