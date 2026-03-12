@@ -130,14 +130,14 @@ fun ReminderItemPlaceholder(number: Int) {
                 // Times
                 Text(
                     text = "⏰ 08:00 AM, 01:00 PM, 05:00 PM",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
 
                 Text(
                     text = "Dos: 1 kapsul",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.secondary
                 )
 

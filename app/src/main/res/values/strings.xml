@@ -1,11 +1,11 @@
 <resources>
     <string name="app_name">MediAlert</string>
-    <string name="home">Home</string>
-    <string name="appointment">Appointment</string>
-    <string name="medication">Medication</string>
-    <string name="reminder">Reminder</string>
-    <string name="profile">Profile</string>
-    <string name="call">Call</string>
-    <string name="editReminder">Edit Reminder</string>
-    <string name="editProfile">Edit Profile</string>
+    <string name="home">Utama</string>
+    <string name="appointment">Janji Temu</string>
+    <string name="medication">Perubatan</string>
+    <string name="reminder">Peringatan</string>
+    <string name="profile">Profil</string>
+    <string name="call">Hubungi Klinik</string>
+    <string name="editReminder">Ubah Peringatan</string>
+    <string name="editProfile">Ubah Profil</string>
 </resources>

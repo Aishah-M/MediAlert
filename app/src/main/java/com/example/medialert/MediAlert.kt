@@ -68,8 +68,8 @@ fun MediAlertApp(
     )
     val navItems = listOf(
 
-        NavItem(MediAlertScreen.Medication,R.drawable.baseline_assignment_24,"Medication"),
         NavItem(MediAlertScreen.Appointment,R.drawable.baseline_calendar_month_24,"Appointment"),
+        NavItem(MediAlertScreen.Medication,R.drawable.baseline_assignment_24,"Medication"),
         NavItem(MediAlertScreen.Home,R.drawable.baseline_home_24,"Home"),
         NavItem(MediAlertScreen.Reminder,R.drawable.baseline_alarm_24,"Reminder"),
         NavItem(MediAlertScreen.Profile,R.drawable.person_24dp_000000,"Profile")
