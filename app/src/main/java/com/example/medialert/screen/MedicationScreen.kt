@@ -119,7 +119,7 @@ fun MedicationInfoCard(medication: Medication) {
             )
 
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(13.dp)
             ) {
                 // NEW: Row containing Name and Add Button
                 Row(

@@ -29,7 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.medialert.screen.AppointmentScreen
-import com.example.medialert.screen.CallScreen
+import com.example.medialert.screen.ContactScreen
 import com.example.medialert.screen.HomeScreen
 import com.example.medialert.screen.MedicationScreen
 import com.example.medialert.screen.ProfileEditScreen
@@ -47,7 +47,7 @@ enum class MediAlertScreen(@StringRes val title: Int) {
     Profile(R.string.profile),
     EditReminder(R.string.editReminder),
     EditProfile(R.string.editProfile),
-    Call(R.string.call)
+    Contact(R.string.contact)
 }
 
 data class NavItem(
@@ -83,7 +83,7 @@ fun MediAlertApp(
         MediAlertScreen.EditReminder.name,
         MediAlertScreen.Profile.name,
         MediAlertScreen.EditProfile.name,
-        MediAlertScreen.Call.name
+        MediAlertScreen.Contact.name
     )
 
     val showTopBar = currentRoute != MediAlertScreen.Home.name
@@ -156,7 +156,7 @@ fun MediAlertApp(
             composable(route = MediAlertScreen.Home.name) {
                 HomeScreen(
                     onCallClick = {
-                        navController.navigate(MediAlertScreen.Call.name)
+                        navController.navigate(MediAlertScreen.Contact.name)
                     }
                 )
             }
@@ -179,8 +179,8 @@ fun MediAlertApp(
                 ProfileScreen(
                 )
             }
-            composable(route = MediAlertScreen.Call.name) {
-                CallScreen(
+            composable(route = MediAlertScreen.Contact.name) {
+                ContactScreen(
                 )
             }
             composable(route = MediAlertScreen.EditProfile.name) {

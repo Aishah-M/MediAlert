@@ -25,7 +25,7 @@ fun HomeScreen(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.baseline_call_24),
-                contentDescription = "Call Screen"
+                contentDescription = "Contact Screen"
             )
         }
     }

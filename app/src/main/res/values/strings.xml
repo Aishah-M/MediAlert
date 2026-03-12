@@ -5,7 +5,7 @@
     <string name="medication">Perubatan</string>
     <string name="reminder">Peringatan</string>
     <string name="profile">Profil</string>
-    <string name="call">Hubungi Klinik</string>
+    <string name="contact">Hubungi Klinik</string>
     <string name="editReminder">Ubah Peringatan</string>
     <string name="editProfile">Ubah Profil</string>
 </resources>
