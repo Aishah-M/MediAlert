@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -48,29 +49,7 @@ data class Medication(
 
 @Composable
 fun MedicationScreen(
-    // Added sample data here as a default so it shows up without Firebase
-    medications: List<Medication> = listOf(
-        Medication(
-            name = "Amoxicillin 250 mg",
-            dosage = "1 kapsul",
-            frequency = "3 kali sehari",
-            duration = "sehingga ubat habis",
-            purpose = "Merawat jangkitan bakteria",
-            instructions = "Ambil Selepas makan",
-            prescriptionDate = "12 Mac 2024",
-            doctorName = "Dr. Nurul"
-        ),
-        Medication(
-            name = "Paracetamol 500 mg",
-            dosage = "2 biji",
-            frequency = "Setiap 6 jam",
-            duration = "Bila perlu",
-            purpose = "Melegakan demam/sakit",
-            instructions = "Ambil Selepas makan",
-            prescriptionDate = "10 Mac 2024",
-            doctorName = "Dr. Nurul"
-        )
-    ),
+    medications: List<Medication> = emptyList(),
     //modifier: Modifier = Modifier
 ) {
     Surface(
@@ -80,16 +59,40 @@ fun MedicationScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp),
+                .padding(13.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                items(medications) { medication ->
-                    MedicationInfoCard(medication)
+            // Check if the list from API is empty
+            if (medications.isEmpty()) {
+                // EMPTY STATE UI
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Tiada ubat",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        text = "Senarai ubat akan dipaparkan di sini setelah dikemaskini.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.outline,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    items(medications) { medication ->
+                        MedicationInfoCard(medication)
+                    }
                 }
             }
         }
@@ -119,7 +122,7 @@ fun MedicationInfoCard(medication: Medication) {
             )
 
             Column(
-                modifier = Modifier.padding(13.dp)
+                modifier = Modifier.padding(15.dp)
             ) {
                 // NEW: Row containing Name and Add Button
                 Row(
@@ -192,10 +195,31 @@ fun MedicationDetailRow(label: String, value: String) {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Empty State")
 @Composable
-fun MedicationScreenPreview() {
+fun MedicationScreenEmptyPreview() {
     MediAlertTheme {
-        MedicationScreen()
+        MedicationScreen(medications = emptyList())
+    }
+}
+
+@Preview(showBackground = true, name = "With Data")
+@Composable
+fun MedicationScreenDataPreview() {
+    MediAlertTheme {
+        MedicationScreen(
+            medications = listOf(
+                Medication(
+                    name = "Amoxicillin 250mg",
+                    dosage = "1 Biji",
+                    frequency = "3 kali sehari",
+                    duration = "7 hari",
+                    purpose = "Antibiotik",
+                    instructions = "Selepas makan",
+                    prescriptionDate = "14/03/2026",
+                    doctorName = "Dr. Ahmad"
+                )
+            )
+        )
     }
 }

@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.medialert.theme.MediAlertTheme
@@ -37,27 +38,8 @@ data class Appointment(
 @Composable
 fun AppointmentScreen(
     modifier: Modifier = Modifier,
-    // Sample data list
-    appointments: List<Appointment> = listOf(
-        Appointment(
-            date = "16/3/2026",
-            day = "MONDAY",
-            time = "9:00 AM",
-            department = "Klinik Pakar Pembedahan Am (SOPD)",
-            hospital = "Hospital Tanjung Karang",
-            reason = "Pemeriksaan berkala",
-            status = "Akan datang"
-        ),
-        Appointment(
-            date = "10/2/2026",
-            day = "TUESDAY",
-            time = "11:30 AM",
-            department = "Jabatan Ortopedik",
-            hospital = "Hospital Tanjung Karang",
-            reason = "Rawatan susulan",
-            status = "Selesai"
-        ),
-    )
+    // Default is now emptyList() to support the "Tiada" logic
+    appointments: List<Appointment> = emptyList()
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -66,23 +48,37 @@ fun AppointmentScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp)
+                .padding(13.dp)
         ) {
-            /*
-            Text(
-                text = "Temujanji Saya",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-             */
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(appointments) { appointment ->
-                    AppointmentInfoCard(appointment)
+            // Check if there are any appointments
+            if (appointments.isEmpty()) {
+                // EMPTY STATE UI
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Tiada janji temu",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        text = "Maklumat janji temu akan dipaparkan di sini setelah dikemaskini.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.outline,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(appointments) { appointment ->
+                        AppointmentInfoCard(appointment)
+                    }
                 }
             }
         }
@@ -98,7 +94,7 @@ fun AppointmentInfoCard(appointment: Appointment) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(13.dp)
+            modifier = Modifier.padding(15.dp)
         ) {
             // Header Row: Date/Day and Status Label
             Row(
@@ -177,10 +173,30 @@ fun AppointmentDetailRow(label: String, value: String) {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Empty State")
 @Composable
-fun AppointmentScreenPreview() {
+fun AppointmentScreenEmptyPreview() {
     MediAlertTheme {
-        AppointmentScreen()
+        AppointmentScreen(appointments = emptyList())
+    }
+}
+
+@Preview(showBackground = true, name = "With Data")
+@Composable
+fun AppointmentScreenDataPreview() {
+    MediAlertTheme {
+        AppointmentScreen(
+            appointments = listOf(
+                Appointment(
+                    date = "16/3/2026",
+                    day = "MONDAY",
+                    time = "9:00 AM",
+                    department = "Klinik Pakar Pembedahan Am (SOPD)",
+                    hospital = "Hospital Tanjung Karang",
+                    reason = "Pemeriksaan berkala",
+                    status = "Akan datang"
+                )
+            )
+        )
     }
 }

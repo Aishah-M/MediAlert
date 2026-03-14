@@ -29,14 +29,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.medialert.R
 import com.example.medialert.theme.MediAlertTheme
 
 @Composable
 fun ReminderScreen(
     onAddClick: () -> Unit,
+    // For now, this is empty to show the "Tiada peringatan" state
+    // Later, this will be passed from your ViewModel/Database
+    reminders: List<Int> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     // 1. Wrap everything in a Surface to set the screen background color
@@ -47,7 +52,7 @@ fun ReminderScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp),
+                .padding(13.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Button "Add Medication"
@@ -65,13 +70,31 @@ fun ReminderScreen(
                 Text(text = "Tambah peringatan ubat")
             }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 16.dp) // Extra space at the bottom
-            ) {
-                items(10) { index ->
-                    ReminderItemPlaceholder(index + 1)
+            // --- LOGIC STARTS HERE ---
+            if (reminders.isEmpty()) {
+                // EMPTY STATE
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Tiada peringatan ubat.\nSila tekan '+' untuk menambah peringatan",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.outline,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 24.sp
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp) // Extra space at the bottom
+                ) {
+                    items(10) { index ->
+                        ReminderItemPlaceholder(index + 1)
+                    }
                 }
             }
         }
@@ -93,7 +116,7 @@ fun ReminderItemPlaceholder(number: Int) {
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(15.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.Top
         ) {
@@ -166,7 +189,9 @@ fun ReminderItemPlaceholder(number: Int) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    modifier = Modifier.width(70.dp).height(32.dp),
+                    modifier = Modifier
+                        .width(70.dp)
+                        .height(32.dp),
                     onClick = { },
                     shape = MaterialTheme.shapes.medium,
                     contentPadding = PaddingValues(0.dp),
@@ -179,7 +204,9 @@ fun ReminderItemPlaceholder(number: Int) {
                 }
 
                 Button(
-                    modifier = Modifier.width(70.dp).height(32.dp),
+                    modifier = Modifier
+                        .width(70.dp)
+                        .height(32.dp),
                     onClick = { },
                     shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(
@@ -197,11 +224,18 @@ fun ReminderItemPlaceholder(number: Int) {
 
 @Preview(showBackground = true)
 @Composable
-fun ReminderScreenPreview() {
+fun ReminderScreenEmptyPreview() {
     MediAlertTheme {
-        ReminderScreen(
-            onAddClick = {},
-            modifier = Modifier.fillMaxSize()
-        )
+        // Previewing with empty list to see the "Tiada peringatan" text
+        ReminderScreen(onAddClick = {}, reminders = emptyList())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ReminderScreenDataPreview() {
+    MediAlertTheme {
+        // Previewing with data to see the list
+        ReminderScreen(onAddClick = {}, reminders = listOf(1, 2, 3))
     }
 }
