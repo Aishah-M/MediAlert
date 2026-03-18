@@ -67,16 +67,7 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Profil Pengguna",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // 2. Maklumat Peribadi Card
             ProfileSectionCard(title = "Maklumat Peribadi") {

@@ -32,25 +32,37 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.medialert.R
+import com.example.medialert.data.Medication
 import com.example.medialert.theme.MediAlertTheme
-
-// Data Class to match Firebase Structure
-data class Medication(
-    val imageUrl: String = "",
-    val name: String = "",
-    val dosage: String = "",
-    val frequency: String = "",
-    val duration: String = "",
-    val purpose: String = "",
-    val instructions: String = "",
-    val prescriptionDate: String = "",
-    val doctorName: String = ""
-)
 
 @Composable
 fun MedicationScreen(
-    medications: List<Medication> = emptyList(),
-    //modifier: Modifier = Modifier
+    medications: List<Medication> = emptyList()
+
+    /* untuk test bila ada data
+    medications: List<Medication> = listOf(
+        Medication(
+            name = "Amoxicillin 250mg",
+            dosage = "1 Biji",
+            frequency = "3 kali sehari",
+            duration = "7 hari",
+            purpose = "Antibiotik untuk jangkitan",
+            instructions = "Mesti dihabiskan. Selepas makan.",
+            prescriptionDate = "15/03/2026",
+            doctorName = "Dr. Ahmad Syah"
+        ),
+        Medication(
+            name = "Paracetamol 500mg",
+            dosage = "2 Biji",
+            frequency = "4 kali sehari (Jika perlu)",
+            duration = "3 hari",
+            purpose = "Tahan sakit / Demam",
+            instructions = "Maksimum 8 biji sehari.",
+            prescriptionDate = "15/03/2026",
+            doctorName = "Dr. Ahmad Syah"
+        )
+    )
+    */
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -131,14 +143,14 @@ fun MedicationInfoCard(medication: Medication) {
                 ) {
                     Text(
                         text = medication.name,
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f) // This pushes the button to the far right
                     )
                     Button(
                         onClick = { /* TODO: Logic to add this to your reminders */ },
-                        modifier = Modifier.size(40.dp), // Set a square size for a centered look
+                        modifier = Modifier.size(30.dp), // Set a square size for a centered look
                         shape = MaterialTheme.shapes.medium,
                         // Set contentPadding to 0 to ensure the icon is centered
                         contentPadding = PaddingValues(0.dp)

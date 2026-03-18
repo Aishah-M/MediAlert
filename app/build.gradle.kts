@@ -37,6 +37,15 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        resources {
+            // Option 1: Pick the first one it finds
+            pickFirsts.add("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
+
+            // Option 2: Alternatively, exclude it
+            // excludes.add("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
+        }
+    }
 }
 
 dependencies {
@@ -53,6 +62,7 @@ dependencies {
     implementation(libs.androidx.benchmark.traceprocessor.android)
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation("androidx.compose.material3:material3:1.2.0")
+    implementation(libs.identity.doctypes.jvm)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -56,7 +56,7 @@ fun ContactScreen(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(13.dp)
         ) {
             /*
             Text(

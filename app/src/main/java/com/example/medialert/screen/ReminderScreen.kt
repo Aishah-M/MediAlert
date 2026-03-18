@@ -33,20 +33,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.medialert.data.SampleData
 import com.example.medialert.R
+import com.example.medialert.data.Reminder
 import com.example.medialert.theme.MediAlertTheme
 
 @Composable
 fun ReminderScreen(
     onAddClick: () -> Unit,
-    // For now, this is empty to show the "Tiada peringatan" state
-    // Later, this will be passed from your ViewModel/Database
-    reminders: List<Int> = emptyList(),
+    onEditClick: (Reminder) -> Unit, // <--- MAKE SURE THIS LINE EXISTS
+    reminders: List<Reminder>,      // <--- AND THIS MATCHES YOUR DATA CLASS
     modifier: Modifier = Modifier
 ) {
     // 1. Wrap everything in a Surface to set the screen background color
     Surface(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) // Soft light grey background
     ) {
         Column(
@@ -157,7 +158,7 @@ fun ReminderItemPlaceholder(number: Int) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
-
+                // Dos
                 Text(
                     text = "Dos: 1 kapsul",
                     style = MaterialTheme.typography.bodyLarge,
@@ -222,20 +223,26 @@ fun ReminderItemPlaceholder(number: Int) {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Empty State")
 @Composable
 fun ReminderScreenEmptyPreview() {
     MediAlertTheme {
-        // Previewing with empty list to see the "Tiada peringatan" text
-        ReminderScreen(onAddClick = {}, reminders = emptyList())
+        ReminderScreen(
+            onAddClick = {},
+            onEditClick = {}, // Added missing parameter
+            reminders = emptyList()
+        )
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "With Data")
 @Composable
 fun ReminderScreenDataPreview() {
     MediAlertTheme {
-        // Previewing with data to see the list
-        ReminderScreen(onAddClick = {}, reminders = listOf(1, 2, 3))
+        ReminderScreen(
+            onAddClick = {},
+            onEditClick = {}, // Added missing parameter
+            reminders = SampleData.medicationReminders // Used real Reminder list instead of Ints
+        )
     }
 }

@@ -37,7 +37,7 @@ import com.example.medialert.screen.ProfileScreen
 import com.example.medialert.screen.ReminderEditScreen
 import com.example.medialert.screen.ReminderScreen
 import com.example.medialert.theme.MediAlertTheme
-
+import com.example.medialert.data.SampleData
 
 enum class MediAlertScreen(@StringRes val title: Int) {
     Home(R.string.home),
@@ -120,7 +120,7 @@ fun MediAlertApp(
             if (showBottomBar) {
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.height(75.dp)
+                    modifier = Modifier.height(95.dp)
                 ) {
                     navItems.forEach { item ->
                         NavigationBarItem(
@@ -170,7 +170,13 @@ fun MediAlertApp(
             }
             composable(route = MediAlertScreen.Reminder.name) {
                 ReminderScreen(
+                    reminders = SampleData.medicationReminders,
                     onAddClick = {
+                        navController.navigate(MediAlertScreen.EditReminder.name)
+                    },
+                    onEditClick = { reminder ->
+                        // For now, we just navigate.
+                        // To pass the actual data, you would normally use a ViewModel.
                         navController.navigate(MediAlertScreen.EditReminder.name)
                     }
                 )
@@ -189,13 +195,21 @@ fun MediAlertApp(
             }
             composable(route = MediAlertScreen.EditReminder.name) {
                 ReminderEditScreen(
+                    existingReminder = null, // null because we are adding new
+                    onSave = { updatedReminder ->
+                        // Logic to save would go here
+                        navController.popBackStack()
+                    },
+                    onCancel = {
+                        navController.popBackStack()
+                    }
                 )
             }
         }
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true) // ← showSystemUi = true shows full phone screen
+@Preview(showBackground = true) // ← showSystemUi = true shows full phone screen
 @Composable
 fun MediAlertAppPreview() {
     MediAlertTheme {

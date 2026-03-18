@@ -22,27 +22,38 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.medialert.data.Appointment
 import com.example.medialert.theme.MediAlertTheme
-
-// Data Class for Appointment
-data class Appointment(
-    val date: String = "",
-    val day: String = "",
-    val time: String = "",
-    val department: String = "",
-    val hospital: String = "",
-    val reason: String = "",
-    val status: String = "" // "Akan datang" or "Selesai"
-)
 
 @Composable
 fun AppointmentScreen(
-    modifier: Modifier = Modifier,
-    // Default is now emptyList() to support the "Tiada" logic
     appointments: List<Appointment> = emptyList()
+
+    /* untuk test bila ada data
+    appointments: List<Appointment> = listOf(
+        Appointment(
+            date = "16/03/2026",
+            day = "ISNIN",
+            time = "09:00 AM",
+            department = "Klinik Pakar Pembedahan Am (SOPD)",
+            hospital = "Hospital Tanjung Karang",
+            reason = "Pemeriksaan berkala",
+            status = "Akan datang"
+        ),
+        Appointment(
+            date = "20/04/2026",
+            day = "KHAMIS",
+            time = "11:30 AM",
+            department = "Jabatan Ortopedik",
+            hospital = "Hospital Sungai Buloh",
+            reason = "Rawatan susulan",
+            status = "Selesai"
+        )
+    )
+    */
 ) {
     Surface(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Column(

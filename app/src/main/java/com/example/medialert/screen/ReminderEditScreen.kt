@@ -1,5 +1,8 @@
 package com.example.medialert.screen
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.forEach
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,30 +44,47 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.medialert.R
+import com.example.medialert.data.Medication
+import com.example.medialert.data.Reminder
+import com.example.medialert.data.SampleData
 import com.example.medialert.theme.MediAlertTheme
 import kotlin.text.padStart
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReminderEditScreen() {
-    // --- States ---
-    var selectedMedName by remember { mutableStateOf("") }
+fun ReminderEditScreen(
+    // Receive existing data if editing, or null if adding new
+    existingReminder: Reminder? = null,
+    onSave: (Reminder) -> Unit,
+    onCancel: () -> Unit
+) {
+    // --- States initialized from the Reminder data class ---
+    var selectedMed by remember { mutableStateOf(existingReminder?.medication) }
     var medNameExpanded by remember { mutableStateOf(false) }
-    val medList = listOf("Amoxicillin 250mg", "Paracetamol 500mg", "Metformin")
 
-    var selectedType by remember { mutableStateOf("") }
-    var typeExpanded by remember { mutableStateOf(false) }
-    val typeList = listOf("Pills", "Liquid", "Capsule", "Injection", "Cream")
+    var dosageValue by remember { mutableStateOf(existingReminder?.dosage ?: "") }
 
-    var totalInventory by remember { mutableStateOf("") }
-    var remainingInventory by remember { mutableStateOf("") }
+    var selectedUnit by remember { mutableStateOf(existingReminder?.unit ?: "") }
+    var unitExpanded by remember { mutableStateOf(false) }
+    val unitList = listOf(
+        "ampoule(s)", "capsule(s)", "drop()", "gram(s)",
+        "injection(s)", "miligram(s)", "mililiter(s)", "mm",
+        "pill(s)", "sachet(s)", "spray(s)", "tablespoon(s)",
+        "teaspoon(s)", "piece(s)", "patch(es)"
+    )
 
-    // List to hold multiple reminder times
-    var reminderTimes by remember { mutableStateOf(listOf<String>()) }
+    var totalInventory by remember { mutableStateOf(existingReminder?.totalStock ?: "") }
+    var remainingInventory by remember { mutableStateOf(existingReminder?.remainingStock ?: "") }
+
+    var reminderTimes by remember { mutableStateOf(existingReminder?.times ?: emptyList()) }
     var showTimePicker by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
@@ -75,25 +95,16 @@ fun ReminderEditScreen() {
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(15.dp)
                 .verticalScroll(scrollState)
         ) {
-            Text(
-                text = "Tetapan Peringatan",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             // 1. Dropdown: Nama Ubat
             ExposedDropdownMenuBox(
                 expanded = medNameExpanded,
                 onExpandedChange = { medNameExpanded = !medNameExpanded }
             ) {
                 OutlinedTextField(
-                    value = selectedMedName,
+                    value = selectedMed?.name?:"",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Pilih Nama Ubat") },
@@ -106,47 +117,83 @@ fun ReminderEditScreen() {
                     expanded = medNameExpanded,
                     onDismissRequest = { medNameExpanded = false }
                 ) {
-                    medList.forEach { name ->
+                    SampleData.availableMedications.forEach { med ->
                         DropdownMenuItem(
-                            text = { Text(name) },
+                            text = { Text(med.name) },
                             onClick = {
-                                selectedMedName = name
+                                selectedMed = med
                                 medNameExpanded = false
                             }
                         )
                     }
                 }
             }
+            // --- IMAGE DISPLAY LOGIC ---
+            // If a medicine is selected, show the image right below the dropdown
+            selectedMed?.imageRes?.let { data ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Image(
+                    painter = painterResource(id = data),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant,
+                            MaterialTheme.shapes.medium
+                        ),
+                    contentScale = ContentScale.Crop
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Dropdown: Jenis Ubat
-            ExposedDropdownMenuBox(
-                expanded = typeExpanded,
-                onExpandedChange = { typeExpanded = !typeExpanded }
+            // 2. Row containing Dosage and Unit
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Dos Diambil (Numeric Input)
                 OutlinedTextField(
-                    value = selectedType,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Jenis Ubat") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor()
+                    value = dosageValue,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) dosageValue = it},
+                    label = { Text("Dos diambil") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
                 )
-                ExposedDropdownMenu(
-                    expanded = typeExpanded,
-                    onDismissRequest = { typeExpanded = false }
+
+                // Unit (Dropdown)
+                ExposedDropdownMenuBox(
+                    expanded = unitExpanded,
+                    onExpandedChange = { unitExpanded = !unitExpanded },
+                    modifier = Modifier.weight(1f)
                 ) {
-                    typeList.forEach { type ->
-                        DropdownMenuItem(
-                            text = { Text(type) },
-                            onClick = {
-                                selectedType = type
-                                typeExpanded = false
-                            }
-                        )
+                    OutlinedTextField(
+                        value = selectedUnit,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Unit") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = unitExpanded,
+                        onDismissRequest = { unitExpanded = false }
+                    ) {
+                        unitList.forEach { unit ->
+                            DropdownMenuItem(
+                                text = { Text(unit) },
+                                onClick = {
+                                    selectedUnit = unit
+                                    unitExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -160,17 +207,19 @@ fun ReminderEditScreen() {
             ) {
                 OutlinedTextField(
                     value = totalInventory,
-                    onValueChange = { totalInventory = it },
+                    onValueChange = { if (it.all { char -> char.isDigit() }) totalInventory = it },
                     label = { Text("Jumlah Asal") },
                     modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = remainingInventory,
-                    onValueChange = { remainingInventory = it },
+                    onValueChange = { if (it.all { char -> char.isDigit() }) remainingInventory = it },
                     label = { Text("Baki Semasa") },
                     modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
                 )
             }
 
@@ -201,6 +250,9 @@ fun ReminderEditScreen() {
                     }) {
                         Icon(Icons.Default.Delete, contentDescription = "Padam", tint = MaterialTheme.colorScheme.error)
                     }
+//                    IconButton(onClick = { reminderTimes = reminderTimes.filterIndexed { i, _ -> i != index } }) {
+//                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+//                    }
                 }
             }
 
@@ -214,7 +266,7 @@ fun ReminderEditScreen() {
                 Text("Tambah Masa")
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // 5. Action Buttons
             Row(
@@ -224,7 +276,7 @@ fun ReminderEditScreen() {
                 OutlinedButton(
                     onClick = {
                         // Reset all states
-                        selectedMedName = ""; selectedType = ""; totalInventory = ""
+                        selectedMed = null; selectedUnit = ""; totalInventory = ""
                         remainingInventory = ""; reminderTimes = emptyList()
                     },
                     modifier = Modifier.weight(1f)
@@ -240,7 +292,7 @@ fun ReminderEditScreen() {
             }
         }
     }
-
+    /*
     // Time Picker Dialog logic
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState()
@@ -259,12 +311,62 @@ fun ReminderEditScreen() {
             text = { TimePicker(state = timePickerState) }
         )
     }
+     */
+    // --- CORRECTED TIME PICKER DIALOG ---
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            is24Hour = false // This makes the Picker UI show AM/PM buttons
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    // Logic to convert 24h data to 12h display string
+                    val hour = timePickerState.hour
+                    val minute = timePickerState.minute.toString().padStart(2, '0')
+                    val amPm = if (hour < 12) "AM" else "PM"
+
+                    val displayHour = when {
+                        hour == 0 -> 12
+                        hour > 12 -> hour - 12
+                        else -> hour
+                    }
+
+                    val formattedTime = "$displayHour:$minute $amPm"
+
+                    reminderTimes = reminderTimes + formattedTime
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Batal") }
+            },
+            text = { TimePicker(state = timePickerState) }
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Empty State")
+@Composable
+fun ReminderEditEmptyPreview() {
+    MediAlertTheme {
+        ReminderEditScreen(
+            existingReminder = null, // null means "Add New" mode
+            onSave = {},
+            onCancel = {}
+        )
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun ReminderEditPreview() {
     MediAlertTheme {
-        ReminderEditScreen()
+        // Test with existing sample data
+        ReminderEditScreen(
+            existingReminder = SampleData.medicationReminders[0],
+            onSave = {},
+            onCancel = {}
+        )
     }
 }
