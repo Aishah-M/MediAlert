@@ -155,9 +155,8 @@ fun MediAlertApp(
         ) {
             composable(route = MediAlertScreen.Home.name) {
                 HomeScreen(
-                    onCallClick = {
-                        navController.navigate(MediAlertScreen.Contact.name)
-                    }
+                    onProfileClick = { navController.navigate(MediAlertScreen.Profile.name) },
+                    onContactClick = { navController.navigate(MediAlertScreen.Contact.name) }
                 )
             }
             composable(route = MediAlertScreen.Appointment.name) {
@@ -183,6 +182,12 @@ fun MediAlertApp(
             }
             composable(route = MediAlertScreen.Profile.name) {
                 ProfileScreen(
+                    modifier = Modifier,
+                    onEditClick = { navController.navigate(MediAlertScreen.EditProfile.name) },
+                    onLogoutClick = {
+                        // Add logout logic or navigate to login
+                        navController.popBackStack(MediAlertScreen.Home.name, inclusive = true)
+                    }
                 )
             }
             composable(route = MediAlertScreen.Contact.name) {
@@ -191,6 +196,11 @@ fun MediAlertApp(
             }
             composable(route = MediAlertScreen.EditProfile.name) {
                 ProfileEditScreen(
+                    //onNavigateBack = { navController.popBackStack() },
+                    onSaveClick = { updatedProfile ->
+                        // In a real app, you would save this to a Database here
+                        navController.popBackStack()
+                    }
                 )
             }
             composable(route = MediAlertScreen.EditReminder.name) {

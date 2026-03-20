@@ -27,7 +27,7 @@ import com.example.medialert.theme.MediAlertTheme
 
 @Composable
 fun AppointmentScreen(
-    appointments: List<Appointment> = emptyList()
+    appointments: List<Appointment> = com.example.medialert.data.SampleData.appointments
 
     /* untuk test bila ada data
     appointments: List<Appointment> = listOf(
@@ -196,18 +196,6 @@ fun AppointmentScreenEmptyPreview() {
 @Composable
 fun AppointmentScreenDataPreview() {
     MediAlertTheme {
-        AppointmentScreen(
-            appointments = listOf(
-                Appointment(
-                    date = "16/3/2026",
-                    day = "MONDAY",
-                    time = "9:00 AM",
-                    department = "Klinik Pakar Pembedahan Am (SOPD)",
-                    hospital = "Hospital Tanjung Karang",
-                    reason = "Pemeriksaan berkala",
-                    status = "Akan datang"
-                )
-            )
-        )
+        AppointmentScreen()
     }
 }

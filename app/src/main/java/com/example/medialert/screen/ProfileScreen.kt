@@ -1,6 +1,9 @@
 package com.example.medialert.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -15,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -26,16 +31,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.medialert.R
+import com.example.medialert.data.UserProfile
 import com.example.medialert.theme.MediAlertTheme
 
 @Composable
 fun ProfileScreen(
-    modifier: Modifier = Modifier
+    user: UserProfile = com.example.medialert.data.SampleData.userProfile, // Use the new data class
+    onEditClick: () -> Unit,
+    onLogoutClick: () -> Unit,
+    modifier: Modifier
 ) {
     // ScrollState allows the user to scroll if the profile info is long
     val scrollState = rememberScrollState()
@@ -51,51 +61,106 @@ fun ProfileScreen(
                 .padding(13.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Profile Header Area
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+            // 1. Header Row (Logo and Edit Button)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    painter = painterResource(id=R.drawable.person_24dp_000000),
-                    contentDescription = null,
-                    modifier = Modifier.size(60.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                // Spacer to keep the logo centered if needed,
+                // but usually, we just put the logo and then the button at the end
+                Spacer(modifier = Modifier.width(48.dp)) // Counter-balance for the edit button width
+
+                // Profile Picture
+                Box(
+                    modifier = Modifier
+                        .size(70.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.person_24dp_000000),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.size(50.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                // Column to stack Icon and Text vertically
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .clickable { onEditClick() } // Make the whole area clickable
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_edit_24),
+                        contentDescription = "Edit Profile",
+                        tint = androidx.compose.ui.graphics.Color.Black, // Black color
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Ubah profil",
+                        color = androidx.compose.ui.graphics.Color.Black, // Black color
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // 2. Maklumat Peribadi Card
             ProfileSectionCard(title = "Maklumat Peribadi") {
-                ProfileDetailRow(label = "Nama penuh", value = "Siti Aminah Binti Sidek")
-                ProfileDetailRow(label = "Tarikh lahir", value = "30 Mac 1965")
-                ProfileDetailRow(label = "Umur", value = "61 Tahun")
-                ProfileDetailRow(label = "Jantina", value = "Perempuan")
-                ProfileDetailRow(label = "Jenis darah", value = "B+")
+                ProfileDetailRow(label = "Nama penuh", value = user.fullName)
+                ProfileDetailRow(label = "Tarikh lahir", value = user.birthDate)
+                ProfileDetailRow(label = "Umur", value = user.age)
+                ProfileDetailRow(label = "Jantina", value = user.gender)
+                ProfileDetailRow(label = "Jenis darah", value = user.bloodType)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // 3. Maklumat Kesihatan Card
             ProfileSectionCard(title = "Maklumat Kesihatan") {
-                ProfileDetailRow(label = "Penyakit kronik", value = "Darah tinggi")
-                ProfileDetailRow(label = "Alahan", value = "Tiada")
+                ProfileDetailRow(label = "Penyakit kronik", user.chronicDiseases)
+                ProfileDetailRow(label = "Alahan", value = user.allergies)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // 4. Hubungan Kecemasan Card
             ProfileSectionCard(title = "Kontak Kecemasan") {
-                ProfileDetailRow(label = "Nama", value = "Sarah Wayne")
-                ProfileDetailRow(label = "Hubungan", value = "Anak Perempuan")
-                ProfileDetailRow(label = "No. Telefon", value = "017-3193544")
+                ProfileDetailRow(label = "Nama", value = user.emergencyContactName)
+                ProfileDetailRow(label = "Hubungan", user.emergencyContactRelation)
+                ProfileDetailRow(label = "No. Telefon", user.emergencyContactPhone)
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                onClick = onLogoutClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.baseline_exit_to_app_24),
+                    contentDescription = null
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Log Keluar",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
@@ -151,6 +216,10 @@ fun ProfileDetailRow(label: String, value: String) {
 @Composable
 fun ProfileScreenPreview() {
     MediAlertTheme {
-        ProfileScreen()
+        ProfileScreen(
+            user = com.example.medialert.data.SampleData.userProfile,
+            onEditClick = {},
+            onLogoutClick = {},
+            modifier = Modifier)
     }
 }

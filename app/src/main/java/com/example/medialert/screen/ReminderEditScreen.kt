@@ -81,8 +81,10 @@ fun ReminderEditScreen(
         "teaspoon(s)", "piece(s)", "patch(es)"
     )
 
-    var totalInventory by remember { mutableStateOf(existingReminder?.totalStock ?: "") }
-    var remainingInventory by remember { mutableStateOf(existingReminder?.remainingStock ?: "") }
+
+// To this (Adding .toString() to handle the Int coming from the data class):
+    var totalInventory by remember { mutableStateOf(existingReminder?.totalStock?.toString() ?: "") }
+    var remainingInventory by remember { mutableStateOf(existingReminder?.remainingStock?.toString() ?: "")}
 
     var reminderTimes by remember { mutableStateOf(existingReminder?.times ?: emptyList()) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -137,14 +139,14 @@ fun ReminderEditScreen(
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp)
+                        .height(160.dp)
                         .clip(MaterialTheme.shapes.medium)
                         .border(
                             1.dp,
                             MaterialTheme.colorScheme.outlineVariant,
                             MaterialTheme.shapes.medium
                         ),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
             }
 
@@ -276,7 +278,7 @@ fun ReminderEditScreen(
                 OutlinedButton(
                     onClick = {
                         // Reset all states
-                        selectedMed = null; selectedUnit = ""; totalInventory = ""
+                        selectedMed = null; dosageValue = ""; selectedUnit = ""; totalInventory = ""
                         remainingInventory = ""; reminderTimes = emptyList()
                     },
                     modifier = Modifier.weight(1f)

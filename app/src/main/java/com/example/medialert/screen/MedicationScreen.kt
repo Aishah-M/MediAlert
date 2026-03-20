@@ -33,11 +33,12 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.medialert.R
 import com.example.medialert.data.Medication
+import com.example.medialert.data.SampleData
 import com.example.medialert.theme.MediAlertTheme
 
 @Composable
 fun MedicationScreen(
-    medications: List<Medication> = emptyList()
+    medications: List<Medication> = SampleData.medications
 
     /* untuk test bila ada data
     medications: List<Medication> = listOf(
@@ -219,19 +220,6 @@ fun MedicationScreenEmptyPreview() {
 @Composable
 fun MedicationScreenDataPreview() {
     MediAlertTheme {
-        MedicationScreen(
-            medications = listOf(
-                Medication(
-                    name = "Amoxicillin 250mg",
-                    dosage = "1 Biji",
-                    frequency = "3 kali sehari",
-                    duration = "7 hari",
-                    purpose = "Antibiotik",
-                    instructions = "Selepas makan",
-                    prescriptionDate = "14/03/2026",
-                    doctorName = "Dr. Ahmad"
-                )
-            )
-        )
+        MedicationScreen()
     }
 }
