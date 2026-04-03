@@ -125,8 +125,8 @@ fun MedicationInfoCard(medication: Medication) {
             AsyncImage(
                 model = medication.imageUrl,
                 contentDescription = "Medicine Image",
-                placeholder = painterResource(R.drawable.mica2),
-                error = painterResource(R.drawable.mica2),
+                placeholder = painterResource(R.drawable.mica),
+                error = painterResource(R.drawable.mica),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)

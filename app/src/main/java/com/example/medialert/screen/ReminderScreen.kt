@@ -126,7 +126,7 @@ fun ReminderItemPlaceholder(number: Int) {
             ) {
                 // Medicine Image
                 Image(
-                    painter = painterResource(id = R.drawable.mica2),
+                    painter = painterResource(id = R.drawable.mica),
                     contentDescription = "Medicine Image",
                     modifier = Modifier
                         .size(70.dp)

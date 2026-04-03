@@ -7,15 +7,15 @@ object SampleData {
     val availableMedications = listOf(
         Medication(
             name = "Amoxicillin 250mg",
-            imageRes = R.drawable.mica2
+            imageRes = R.drawable.mica
         ),
         Medication(
             name = "Paracetamol 500mg",
-            imageRes = R.drawable.mica2
+            imageRes = R.drawable.mica
         ),
         Medication(
             name = "Metformin",
-            imageRes = R.drawable.mica2
+            imageRes = R.drawable.mica
         )
     )
 
