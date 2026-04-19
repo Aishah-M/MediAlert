@@ -28,29 +28,6 @@ import com.example.medialert.theme.MediAlertTheme
 @Composable
 fun AppointmentScreen(
     appointments: List<Appointment> = com.example.medialert.data.SampleData.appointments
-
-    /* untuk test bila ada data
-    appointments: List<Appointment> = listOf(
-        Appointment(
-            date = "16/03/2026",
-            day = "ISNIN",
-            time = "09:00 AM",
-            department = "Klinik Pakar Pembedahan Am (SOPD)",
-            hospital = "Hospital Tanjung Karang",
-            reason = "Pemeriksaan berkala",
-            status = "Akan datang"
-        ),
-        Appointment(
-            date = "20/04/2026",
-            day = "KHAMIS",
-            time = "11:30 AM",
-            department = "Jabatan Ortopedik",
-            hospital = "Hospital Sungai Buloh",
-            reason = "Rawatan susulan",
-            status = "Selesai"
-        )
-    )
-    */
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
