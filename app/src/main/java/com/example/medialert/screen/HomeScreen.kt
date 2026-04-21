@@ -45,21 +45,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.medialert.R
 import com.example.medialert.data.Reminder
 import com.example.medialert.data.UserProfile
+import com.example.medialert.data.Appointment
+import com.example.medialert.viewModel.AppointmentVM
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.Locale
+import java.util.Calendar
 
 @Composable
 fun HomeScreen(
     user: UserProfile = com.example.medialert.data.SampleData.userProfile,
-    nextAppointment: com.example.medialert.data.Appointment? = com.example.medialert.data.SampleData.appointments.firstOrNull(),
+    appointmentViewModel: AppointmentVM = viewModel(),
     onProfileClick: () -> Unit,
     onContactClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val appointments by appointmentViewModel.appointments
+    val nextAppointment = appointments.firstOrNull()
+
     // Local state for medication list to demonstrate stock deduction
     var reminders by remember { mutableStateOf(com.example.medialert.data.SampleData.medicationReminders) }
 
@@ -127,7 +136,6 @@ fun HomeHeader(user: UserProfile, onProfileClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                // onPrimary ensures text is readable against the primary blue background
                 Text(
                     text = "Hai,",
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
@@ -146,12 +154,10 @@ fun HomeHeader(user: UserProfile, onProfileClick: () -> Unit) {
                 )
             }
 
-            // Profile Icon
             Box(
                 modifier = Modifier
                     .size(55.dp)
                     .clip(CircleShape)
-                    // Background of the circle adapts to theme
                     .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
                     .clickable { onProfileClick() },
                 contentAlignment = Alignment.Center
@@ -168,27 +174,31 @@ fun HomeHeader(user: UserProfile, onProfileClick: () -> Unit) {
 }
 
 @Composable
-fun AppointmentCountdownCard(appointment: com.example.medialert.data.Appointment?) {
-    // If no appointment exists, we can show a placeholder or hide the card
+fun AppointmentCountdownCard(appointment: Appointment?) {
     if (appointment == null) return
 
-    // Calculate days remaining
-    val daysRemaining = remember(appointment.date) {
-        try {
-            val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-            val appointmentDate = LocalDate.parse(appointment.date, formatter)
-            val today = LocalDate.now()
-
-            // Calculate difference
-            val diff = ChronoUnit.DAYS.between(today, appointmentDate)
-
-            // If the date has passed, just show 0
-            if (diff > 0) diff else 0L
-        } catch (e: Exception) {
-            0L
-        }
+    val daysRemaining = remember(appointment.timestamp) {
+        appointment.timestamp?.toDate()?.let { apptDate ->
+            val today = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.time
+            
+            val diff = apptDate.time - today.time
+            val days = diff / (1000 * 60 * 60 * 24)
+            if (days > 0) days else 0L
+        } ?: 0L
     }
-    
+
+    val dateStr = appointment.timestamp?.toDate()?.let {
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it)
+    } ?: "N/A"
+
+    val timeStr = appointment.timestamp?.toDate()?.let {
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).format(it).uppercase()
+    } ?: "N/A"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -205,21 +215,19 @@ fun AppointmentCountdownCard(appointment: com.example.medialert.data.Appointment
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
-                // Dynamic Data from Firebase/SampleData
-                Text(appointment.hospital, fontWeight = FontWeight.Bold)
                 Text(appointment.department, fontSize = 12.sp)
-                Text("${appointment.date} • ${appointment.time}", fontSize = 12.sp)
+                Text("$dateStr • $timeStr", fontSize = 12.sp)
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = if (daysRemaining > 0) daysRemaining.toString() else "0",
+                    text = daysRemaining.toString(),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = if (daysRemaining == 1L) "HARI LAGI" else "HARI LAGI",
+                    text = "HARI LAGI",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -263,13 +271,11 @@ fun MedicationTaskCard(reminder: Reminder, onTakenClick: () -> Unit) {
                 )
             }
 
-            // Dynamic Button based on isTaken state
             Button(
                 onClick = onTakenClick,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    // If taken: Use a subtle grey. If not: Use the secondary color
                     containerColor = if (reminder.isTaken)
                         MaterialTheme.colorScheme.surfaceVariant
                     else
@@ -281,7 +287,6 @@ fun MedicationTaskCard(reminder: Reminder, onTakenClick: () -> Unit) {
                 )
             ) {
                 Icon(
-                    // If taken: Filled icon. If not: Outlined icon
                     imageVector = if (reminder.isTaken)
                         Icons.Filled.CheckCircle
                     else
@@ -303,71 +308,13 @@ fun MedicationTaskCard(reminder: Reminder, onTakenClick: () -> Unit) {
 fun LargeEmergencyButton(onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        modifier = Modifier.height(50.dp), contentPadding = PaddingValues(13.dp),
+        modifier = Modifier.fillMaxWidth().height(56.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Icon(painter = painterResource(id =R.drawable.baseline_call_24),
+        Icon(painter = painterResource(id = R.drawable.baseline_call_24),
             contentDescription = null)
         Spacer(modifier = Modifier.width(12.dp))
         Text("HUBUNGI FASILITI KESIHATAN", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-    }
-}
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    com.example.medialert.theme.MediAlertTheme {
-        // A Surface container using the 'background' color from the theme
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            HomeScreen(
-                user = com.example.medialert.data.SampleData.userProfile,
-                onProfileClick = { /* No-op for preview */ },
-                onContactClick = { /* No-op for preview */ }
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true,  uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode")
-@Composable
-fun HomeScreenDarkPreview() {
-    com.example.medialert.theme.MediAlertTheme {
-        // A Surface container using the 'background' color from the theme
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            HomeScreen(
-                user = com.example.medialert.data.SampleData.userProfile,
-                onProfileClick = { /* No-op for preview */ },
-                onContactClick = { /* No-op for preview */ }
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true, name = "Medication Item Preview")
-@Composable
-fun MedicationItemPreview() {
-    com.example.medialert.theme.MediAlertTheme {
-        PaddingValues(16.dp).let {
-            MedicationTaskCard(
-                reminder = com.example.medialert.data.SampleData.medicationReminders[0],
-                onTakenClick = {}
-            )
-        }
-    }
-}
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode")
-@Composable
-fun MedicationItemDarkPreview() {
-    com.example.medialert.theme.MediAlertTheme {
-        MedicationTaskCard(
-            reminder = com.example.medialert.data.SampleData.medicationReminders[0],
-            onTakenClick = {}
-        )
     }
 }

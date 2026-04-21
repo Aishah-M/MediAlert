@@ -1,6 +1,7 @@
 package com.example.medialert.data
 
 import com.example.medialert.R
+import com.google.firebase.Timestamp
 
 object SampleData {
     // Core Medications Library (The "Source of Truth")
@@ -63,27 +64,7 @@ object SampleData {
         )
     )
 
-    // Sample Appointments for AppointmentScreen
-    val appointments = listOf(
-        Appointment(
-            date = "16/03/2026",
-            day = "ISNIN",
-            time = "09:00 AM",
-            department = "Klinik Pakar Pembedahan Am (SOPD)",
-            hospital = "Hospital Tanjung Karang",
-            reason = "Pemeriksaan berkala",
-            status = "Akan datang"
-        ),
-        Appointment(
-            date = "20/04/2026",
-            day = "KHAMIS",
-            time = "11:30 AM",
-            department = "Jabatan Ortopedik",
-            hospital = "Hospital Sungai Buloh",
-            reason = "Rawatan susulan",
-            status = "Selesai"
-        )
-    )
+    // Removed sample appointments as we are using real data now
 
     val userProfile = UserProfile(
         fullName = "Siti Aminah Binti Sidek",

@@ -1,12 +1,11 @@
 package com.example.medialert.data
 
+import com.google.firebase.Timestamp
+
 data class Appointment(
-    val id: String = java.util.UUID.randomUUID().toString(),
-    val date: String,
-    val day: String,
-    val time: String,
-    val department: String,
-    val hospital: String,
-    val reason: String,
-    val status: String // "Akan datang" or "Selesai"
+    val id: String = "",
+    val timestamp: Timestamp? = null,
+    val department: String = "",
+    val reason: String = "",
+    val status: String = "" // "Akan datang" or "Selesai"
 )

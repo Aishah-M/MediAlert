@@ -8,4 +8,6 @@
     <string name="contact">Hubungi Klinik</string>
     <string name="editReminder">Ubah Peringatan</string>
     <string name="editProfile">Ubah Profil</string>
+    <string name="login">Log Masuk</string>
+    <string name="signup">Daftar Akaun</string>
 </resources>

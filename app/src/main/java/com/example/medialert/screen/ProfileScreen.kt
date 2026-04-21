@@ -42,10 +42,10 @@ import com.example.medialert.theme.MediAlertTheme
 
 @Composable
 fun ProfileScreen(
-    user: UserProfile = com.example.medialert.data.SampleData.userProfile, // Use the new data class
+    user: UserProfile = com.example.medialert.data.SampleData.userProfile,
     onEditClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    modifier: Modifier
+    modifier: Modifier = Modifier
 ) {
     // ScrollState allows the user to scroll if the profile info is long
     val scrollState = rememberScrollState()
@@ -67,9 +67,7 @@ fun ProfileScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Spacer to keep the logo centered if needed,
-                // but usually, we just put the logo and then the button at the end
-                Spacer(modifier = Modifier.width(48.dp)) // Counter-balance for the edit button width
+                Spacer(modifier = Modifier.width(48.dp))
 
                 // Profile Picture
                 Box(
@@ -92,17 +90,17 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .padding(end = 8.dp)
-                        .clickable { onEditClick() } // Make the whole area clickable
+                        .clickable { onEditClick() }
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.baseline_edit_24),
                         contentDescription = "Edit Profile",
-                        tint = androidx.compose.ui.graphics.Color.Black, // Black color
+                        tint = androidx.compose.ui.graphics.Color.Black,
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
                         text = "Ubah profil",
-                        color = androidx.compose.ui.graphics.Color.Black, // Black color
+                        color = androidx.compose.ui.graphics.Color.Black,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -217,9 +215,8 @@ fun ProfileDetailRow(label: String, value: String) {
 fun ProfileScreenPreview() {
     MediAlertTheme {
         ProfileScreen(
-            user = com.example.medialert.data.SampleData.userProfile,
             onEditClick = {},
-            onLogoutClick = {},
-            modifier = Modifier)
+            onLogoutClick = {}
+        )
     }
 }
