@@ -26,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -50,6 +51,7 @@ import com.example.medialert.data.Reminder
 import com.example.medialert.data.UserProfile
 import com.example.medialert.data.Appointment
 import com.example.medialert.viewModel.AppointmentVM
+import com.example.medialert.viewModel.HomeVM
 import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -57,32 +59,41 @@ import java.util.Calendar
 
 @Composable
 fun HomeScreen(
-    user: UserProfile = com.example.medialert.data.SampleData.userProfile,
+    homeViewModel: HomeVM = viewModel(),
     appointmentViewModel: AppointmentVM = viewModel(),
     onProfileClick: () -> Unit,
     onContactClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val user by homeViewModel.userProfile
     val appointments by appointmentViewModel.appointments
+    val isLoading by homeViewModel.isLoading
+    
     // Only pick the first appointment that is "Akan datang"
     val nextAppointment = appointments.find { it.status == "Akan datang" }
 
     // Local state for medication list to demonstrate stock deduction
     var reminders by remember { mutableStateOf(com.example.medialert.data.SampleData.medicationReminders) }
 
-    HomeContent(
-        user = user,
-        nextAppointment = nextAppointment,
-        reminders = reminders,
-        onProfileClick = onProfileClick,
-        onContactClick = onContactClick,
-        onTakenClick = { reminder ->
-            reminders = reminders.map {
-                if (it.id == reminder.id) it.takeMedication() else it
-            }
-        },
-        modifier = modifier
-    )
+    if (isLoading && user == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
+        HomeContent(
+            user = user ?: UserProfile(fullName = "User"),
+            nextAppointment = nextAppointment,
+            reminders = reminders,
+            onProfileClick = onProfileClick,
+            onContactClick = onContactClick,
+            onTakenClick = { reminder ->
+                reminders = reminders.map {
+                    if (it.id == reminder.id) it.takeMedication() else it
+                }
+            },
+            modifier = modifier
+        )
+    }
 }
 
 @Composable
@@ -165,8 +176,13 @@ fun HomeHeader(user: UserProfile, onProfileClick: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
+                
+                // Use calculation from IC
+                val displayAge = user.calculateAgeFromIC()
+                val displayGender = user.calculateGenderFromIC()
+                
                 Text(
-                    text = "${user.age} • ${user.gender}",
+                    text = "$displayAge Tahun • $displayGender",
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
                     fontSize = 12.sp
                 )
@@ -351,7 +367,7 @@ fun HomePreviewWithData() {
         HomeContent(
             user = UserProfile(
                 fullName = "Siti Aminah Binti Sidek",
-                age = "61 Tahun",
+                age = 61,
                 gender = "Perempuan",
                 icNumber = "650330105432"
             ),

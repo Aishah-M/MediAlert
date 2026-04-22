@@ -22,12 +22,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,129 +38,164 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.medialert.R
 import com.example.medialert.data.UserProfile
 import com.example.medialert.theme.MediAlertTheme
+import com.example.medialert.viewModel.ProfileVM
 
 @Composable
 fun ProfileScreen(
-    user: UserProfile = com.example.medialert.data.SampleData.userProfile,
+    viewModel: ProfileVM = viewModel(),
     onEditClick: () -> Unit,
     onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // ScrollState allows the user to scroll if the profile info is long
-    val scrollState = rememberScrollState()
+    val user by viewModel.userProfile
+    val isLoading by viewModel.isLoading
 
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(13.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        if (isLoading && user == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            user?.let { profile ->
+                ProfileContent(
+                    user = profile,
+                    onEditClick = onEditClick,
+                    onLogoutClick = onLogoutClick
+                )
+            } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "Gagal memuat profil.")
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileContent(
+    user: UserProfile,
+    onEditClick: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+    
+    // Auto-calculate from IC
+    val displayAge = user.calculateAgeFromIC()
+    val displayBirthDate = user.calculateBirthDateFromIC()
+    val displayGender = user.calculateGenderFromIC()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(13.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 1. Header Row (Logo and Edit Button)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // 1. Header Row (Logo and Edit Button)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Spacer(modifier = Modifier.width(48.dp))
+            Spacer(modifier = Modifier.width(48.dp))
 
-                // Profile Picture
-                Box(
-                    modifier = Modifier
-                        .size(70.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.person_24dp_000000),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.size(50.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-
-                // Column to stack Icon and Text vertically
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .clickable { onEditClick() }
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.baseline_edit_24),
-                        contentDescription = "Edit Profile",
-                        tint = androidx.compose.ui.graphics.Color.Black,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Ubah profil",
-                        color = androidx.compose.ui.graphics.Color.Black,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 2. Maklumat Peribadi Card
-            ProfileSectionCard(title = "Maklumat Peribadi") {
-                ProfileDetailRow(label = "Nama penuh", value = user.fullName)
-                ProfileDetailRow(label = "Tarikh lahir", value = user.birthDate)
-                ProfileDetailRow(label = "Umur", value = user.age)
-                ProfileDetailRow(label = "Jantina", value = user.gender)
-                ProfileDetailRow(label = "Jenis darah", value = user.bloodType)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 3. Maklumat Kesihatan Card
-            ProfileSectionCard(title = "Maklumat Kesihatan") {
-                ProfileDetailRow(label = "Penyakit kronik", user.chronicDiseases)
-                ProfileDetailRow(label = "Alahan", value = user.allergies)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 4. Hubungan Kecemasan Card
-            ProfileSectionCard(title = "Kontak Kecemasan") {
-                ProfileDetailRow(label = "Nama", value = user.emergencyContactName)
-                ProfileDetailRow(label = "Hubungan", user.emergencyContactRelation)
-                ProfileDetailRow(label = "No. Telefon", user.emergencyContactPhone)
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
-                onClick = onLogoutClick,
+            // Profile Picture
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                shape = MaterialTheme.shapes.medium
+                    .size(70.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.person_24dp_000000),
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier.size(50.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            // Column to stack Icon and Text vertically
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .clickable { onEditClick() }
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.baseline_exit_to_app_24),
-                    contentDescription = null
+                    painter = painterResource(id = R.drawable.baseline_edit_24),
+                    contentDescription = "Edit Profile",
+                    tint = androidx.compose.ui.graphics.Color.Black,
+                    modifier = Modifier.size(24.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Log Keluar",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "Ubah profil",
+                    color = androidx.compose.ui.graphics.Color.Black,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 2. Maklumat Peribadi Card
+        ProfileSectionCard(title = "Maklumat Peribadi") {
+            ProfileDetailRow(label = "Nama penuh", value = user.fullName)
+            ProfileDetailRow(label = "No. KP", value = user.icNumber)
+            ProfileDetailRow(label = "Tarikh lahir", value = displayBirthDate)
+            ProfileDetailRow(label = "Umur", value = "$displayAge Tahun")
+            ProfileDetailRow(label = "Jantina", value = displayGender)
+            ProfileDetailRow(label = "No. Telefon", value = user.phoneNumber)
+            ProfileDetailRow(label = "Email", value = user.email)
+            ProfileDetailRow(label = "Jenis darah", value = user.bloodType)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 3. Maklumat Kesihatan Card
+        ProfileSectionCard(title = "Maklumat Kesihatan") {
+            ProfileDetailRow(label = "Penyakit kronik", user.chronicDiseases)
+            ProfileDetailRow(label = "Alahan", value = user.allergies)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 4. Hubungan Kecemasan Card
+        ProfileSectionCard(title = "Kontak Kecemasan") {
+            ProfileDetailRow(label = "Nama", value = user.emergencyContactName)
+            ProfileDetailRow(label = "Hubungan", user.emergencyContactRelation)
+            ProfileDetailRow(label = "No. Telefon", user.emergencyContactPhone)
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(
+            onClick = onLogoutClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.error
+            ),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.baseline_exit_to_app_24),
+                contentDescription = null
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Log Keluar",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -214,7 +251,13 @@ fun ProfileDetailRow(label: String, value: String) {
 @Composable
 fun ProfileScreenPreview() {
     MediAlertTheme {
-        ProfileScreen(
+        ProfileContent(
+            user = UserProfile(
+                fullName = "Bakri Bin Selamat",
+                icNumber = "670706106067",
+                phoneNumber = "012-3456789",
+                email = "bakri@example.com"
+            ),
             onEditClick = {},
             onLogoutClick = {}
         )

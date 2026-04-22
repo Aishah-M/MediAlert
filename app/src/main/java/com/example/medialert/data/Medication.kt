@@ -27,7 +27,7 @@ data class Medication(
     val untilFinish: Boolean = false,
 
     val purpose: String = "",
-    val instructions: String = "",
-    val prescriptionDate: String = "",
+    val instruction: String = "",
+    val prescriptionDate: Timestamp? = null,
     val doctorName: String = ""
 )

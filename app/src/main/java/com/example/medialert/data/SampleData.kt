@@ -20,30 +20,6 @@ object SampleData {
         )
     )
 
-    // medication
-    val medications = listOf(
-        Medication(
-            name = "Amoxicillin 250mg",
-            dosage = "1 Biji",
-            frequency = "3 kali sehari",
-            duration = "7 hari",
-            purpose = "Antibiotik untuk jangkitan",
-            instructions = "Mesti dihabiskan. Selepas makan.",
-            prescriptionDate = "15/03/2026",
-            doctorName = "Dr. Ahmad Syah"
-        ),
-        Medication(
-            name = "Paracetamol 500mg",
-            dosage = "2 Biji",
-            frequency = "4 kali sehari (Jika perlu)",
-            duration = "3 hari",
-            purpose = "Tahan sakit / Demam",
-            instructions = "Maksimum 8 biji sehari.",
-            prescriptionDate = "15/03/2026",
-            doctorName = "Dr. Ahmad Syah"
-        )
-    )
-
     // Sample Reminders for ReminderScreen & ReminderEditScreen
     val medicationReminders = listOf(
         Reminder(
@@ -62,23 +38,5 @@ object SampleData {
             remainingStock = 3, // This will show as "Low Stock" in UI
             times = listOf("10:00 AM", "02:00 PM", "06:00 PM", "10:00 PM")
         )
-    )
-
-    // Removed sample appointments as we are using real data now
-
-    val userProfile = UserProfile(
-        fullName = "Siti Aminah Binti Sidek",
-        email = "siti.aminah@email.com",
-        icNumber = "650330-10-5432",
-        birthDate = "30 Mac 1965",
-        age = "61 Tahun",
-        gender = "Perempuan",
-        bloodType = "B+",
-        phoneNumber = "012-3456789",
-        chronicDiseases = "Darah Tinggi, Diabetis",
-        allergies = "Makanan Laut",
-        emergencyContactName = "Sarah Wayne",
-        emergencyContactRelation = "Anak Perempuan",
-        emergencyContactPhone = "017-3183544"
     )
 }

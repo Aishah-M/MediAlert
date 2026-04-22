@@ -116,6 +116,7 @@ fun MedicationInfoCard(medication: Medication) {
     val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val startStr = medication.startDate?.toDate()?.let { sdf.format(it) } ?: ""
     val endStr = medication.endDate?.toDate()?.let { sdf.format(it) } ?: ""
+    val prescriptionDateStr = medication.prescriptionDate?.toDate()?.let { sdf.format(it) } ?: ""
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -197,7 +198,8 @@ fun MedicationInfoCard(medication: Medication) {
                 }
 
                 if (medication.purpose.isNotEmpty()) MedicationDetailRow(label = "Tujuan", value = medication.purpose)
-                if (medication.instructions.isNotEmpty()) MedicationDetailRow(label = "Arahan", value = medication.instructions)
+                if (medication.instruction.isNotEmpty()) MedicationDetailRow(label = "Arahan", value = medication.instruction)
+                if (prescriptionDateStr.isNotEmpty()) MedicationDetailRow(label = "Tarikh Janji", value = prescriptionDateStr)
                 if (medication.doctorName.isNotEmpty()) MedicationDetailRow(label = "Doktor", value = medication.doctorName)
             }
         }
@@ -251,7 +253,7 @@ fun MedicationScreenDataPreview() {
                     times = listOf("09:00 AM"),
                     duration = "30 hari",
                     purpose = "Darah Tinggi",
-                    instructions = "Ambil selepas makan",
+                    instruction = "Ambil selepas makan",
                     doctorName = "Dr. Aminah"
                 )
             ),
