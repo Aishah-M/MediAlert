@@ -2,6 +2,7 @@ package com.example.medialert
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -18,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -64,9 +66,9 @@ fun MediAlertApp(
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    
+
     // Check if user is already logged in
-    val currentUser = FirebaseAuth.getInstance().currentUser
+    val currentUser = try { FirebaseAuth.getInstance().currentUser } catch (e: Exception) { null }
     val startDestination = if (currentUser != null) MediAlertScreen.Home.name else MediAlertScreen.Login.name
 
     val currentScreen = try {
@@ -76,11 +78,11 @@ fun MediAlertApp(
     }
 
     val navItems = listOf(
-        NavItem(MediAlertScreen.Appointment, R.drawable.baseline_calendar_month_24, "Appointment"),
-        NavItem(MediAlertScreen.Medication, R.drawable.baseline_assignment_24, "Medication"),
-        NavItem(MediAlertScreen.Home, R.drawable.baseline_home_24, "Home"),
-        NavItem(MediAlertScreen.Reminder, R.drawable.baseline_alarm_24, "Reminder"),
-        NavItem(MediAlertScreen.Profile, R.drawable.person_24dp_000000, "Profile")
+        NavItem(MediAlertScreen.Appointment, R.drawable.baseline_calendar_month_24, "Janji Temu"),
+        NavItem(MediAlertScreen.Medication, R.drawable.baseline_assignment_24, "Perubatan"),
+        NavItem(MediAlertScreen.Home, R.drawable.baseline_home_24, "Utama"),
+        NavItem(MediAlertScreen.Reminder, R.drawable.baseline_alarm_24, "Peringatan"),
+        NavItem(MediAlertScreen.Profile, R.drawable.person_24dp_000000, "Profil")
     )
 
     // Only show bottom bar on main tabs
@@ -124,7 +126,8 @@ fun MediAlertApp(
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.height(110.dp)
                 ) {
                     navItems.forEach { item ->
                         NavigationBarItem(
@@ -142,7 +145,13 @@ fun MediAlertApp(
                                     contentDescription = item.label
                                 )
                             },
-                            label = { Text(item.label, fontSize = 10.sp) }
+                            label = { 
+                                Text(
+                                    text = item.label,
+                                    fontSize = 10.sp
+                                ) 
+                            },
+                            alwaysShowLabel = true
                         )
                     }
                 }
@@ -203,7 +212,7 @@ fun MediAlertApp(
                 ProfileScreen(
                     onEditClick = { navController.navigate(MediAlertScreen.EditProfile.name) },
                     onLogoutClick = {
-                        FirebaseAuth.getInstance().signOut()
+                        try { FirebaseAuth.getInstance().signOut() } catch (e: Exception) {}
                         navController.navigate(MediAlertScreen.Login.name) {
                             popUpTo(0) { inclusive = true }
                         }

@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,10 +50,8 @@ import com.example.medialert.data.Reminder
 import com.example.medialert.data.UserProfile
 import com.example.medialert.data.Appointment
 import com.example.medialert.viewModel.AppointmentVM
+import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import java.util.Locale
 import java.util.Calendar
 
@@ -67,11 +64,37 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val appointments by appointmentViewModel.appointments
-    val nextAppointment = appointments.firstOrNull()
+    // Only pick the first appointment that is "Akan datang"
+    val nextAppointment = appointments.find { it.status == "Akan datang" }
 
     // Local state for medication list to demonstrate stock deduction
     var reminders by remember { mutableStateOf(com.example.medialert.data.SampleData.medicationReminders) }
 
+    HomeContent(
+        user = user,
+        nextAppointment = nextAppointment,
+        reminders = reminders,
+        onProfileClick = onProfileClick,
+        onContactClick = onContactClick,
+        onTakenClick = { reminder ->
+            reminders = reminders.map {
+                if (it.id == reminder.id) it.takeMedication() else it
+            }
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun HomeContent(
+    user: UserProfile,
+    nextAppointment: Appointment?,
+    reminders: List<Reminder>,
+    onProfileClick: () -> Unit,
+    onContactClick: () -> Unit,
+    onTakenClick: (Reminder) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -106,12 +129,7 @@ fun HomeScreen(
                 items(reminders) { reminder ->
                     MedicationTaskCard(
                         reminder = reminder,
-                        onTakenClick = {
-                            // Inventory Logic: Deduct stock locally
-                            reminders = reminders.map {
-                                if (it.id == reminder.id) it.takeMedication() else it
-                            }
-                        }
+                        onTakenClick = { onTakenClick(reminder) }
                     )
                 }
             }
@@ -212,11 +230,16 @@ fun AppointmentCountdownCard(appointment: Appointment?) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Temujanji Seterusnya",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
-                Text(appointment.department, fontSize = 12.sp)
-                Text("$dateStr • $timeStr", fontSize = 12.sp)
+                Text(appointment.department, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "$dateStr • $timeStr",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -308,7 +331,9 @@ fun MedicationTaskCard(reminder: Reminder, onTakenClick: () -> Unit) {
 fun LargeEmergencyButton(onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -316,5 +341,37 @@ fun LargeEmergencyButton(onClick: () -> Unit) {
             contentDescription = null)
         Spacer(modifier = Modifier.width(12.dp))
         Text("HUBUNGI FASILITI KESIHATAN", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HomePreviewWithData() {
+    com.example.medialert.theme.MediAlertTheme {
+        HomeContent(
+            user = UserProfile(
+                fullName = "Siti Aminah Binti Sidek",
+                age = "61 Tahun",
+                gender = "Perempuan",
+                icNumber = "650330105432"
+            ),
+            nextAppointment = Appointment(
+                timestamp = Timestamp.now(),
+                department = "Klinik Pakar Jantung",
+                status = "Akan datang"
+            ),
+            reminders = listOf(
+                Reminder(
+                    medication = com.example.medialert.data.Medication(name = "Amoxicillin 250mg"),
+                    dosage = "1",
+                    unit = "capsule(s)",
+                    remainingStock = 12,
+                    times = listOf("08:00 AM")
+                )
+            ),
+            onProfileClick = {},
+            onContactClick = {},
+            onTakenClick = {}
+        )
     }
 }

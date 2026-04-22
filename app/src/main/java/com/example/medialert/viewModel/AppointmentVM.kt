@@ -19,7 +19,6 @@ class AppointmentVM : ViewModel() {
     private val _isLoading = mutableStateOf(false)
     val isLoading: State<Boolean> = _isLoading
     
-    // Add a state to capture error messages for the UI
     private val _error = mutableStateOf<String?>(null)
     val error: State<String?> = _error
 
@@ -47,9 +46,34 @@ class AppointmentVM : ViewModel() {
                 }
 
                 if (snapshot != null) {
-                    Log.d("AppointmentVM", "Documents found: ${snapshot.size()}")
                     val list = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(Appointment::class.java)?.copy(id = doc.id)
+                    }.sortedWith { a1, a2 ->
+                        val t1 = a1.timestamp
+                        val t2 = a2.timestamp
+                        
+                        if (a1.status == a2.status) {
+                            if (a1.status == "Akan datang") {
+                                // Upcoming: Soonest at top (Ascending)
+                                when {
+                                    t1 == null && t2 == null -> 0
+                                    t1 == null -> 1
+                                    t2 == null -> -1
+                                    else -> t1.compareTo(t2)
+                                }
+                            } else {
+                                // Selesai: Recent at top, oldest at bottom (Descending)
+                                when {
+                                    t1 == null && t2 == null -> 0
+                                    t1 == null -> 1
+                                    t2 == null -> -1
+                                    else -> t2.compareTo(t1)
+                                }
+                            }
+                        } else {
+                            // "Akan datang" comes before "Selesai"
+                            if (a1.status == "Akan datang") -1 else 1
+                        }
                     }
                     _appointments.value = list
                 }
