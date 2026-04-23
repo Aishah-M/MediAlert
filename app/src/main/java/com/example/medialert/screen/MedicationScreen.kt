@@ -1,27 +1,10 @@
 package com.example.medialert.screen
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import android.util.Log
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -125,17 +108,20 @@ fun MedicationInfoCard(medication: Medication) {
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column {
-            // Full width image
+            // Full width image with Debugging Support
             AsyncImage(
-                model = medication.imageUrl,
+                model = medication.imageUrl.ifEmpty { null },
                 contentDescription = "Medicine Image: ${medication.name}",
-                placeholder = painterResource(R.drawable.mica),
-                error = painterResource(R.drawable.mica),
+                placeholder = painterResource(R.drawable.mal),
+                error = painterResource(R.drawable.mal),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
                     .clip(MaterialTheme.shapes.large),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                onError = { error ->
+                    Log.e("MedicationImage", "Failed to load: ${medication.imageUrl}", error.result.throwable)
+                }
             )
 
             Column(
@@ -160,18 +146,6 @@ fun MedicationInfoCard(medication: Medication) {
                             )
                         }
                     }
-                    Button(
-                        onClick = { /* TODO: Logic to add this to your reminders */ },
-                        modifier = Modifier.size(36.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.baseline_add_24),
-                            contentDescription = "Add Medication",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
                 }
 
                 HorizontalDivider(
@@ -180,18 +154,15 @@ fun MedicationInfoCard(medication: Medication) {
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
 
-                // Detailed prescription info added by doctor
                 if (medication.dosage.isNotEmpty()) MedicationDetailRow(label = "Dos", value = medication.dosage)
                 if (medication.frequency.isNotEmpty()) MedicationDetailRow(label = "Kekerapan", value = medication.frequency)
                 
-                // New Time Field
                 if (medication.times.isNotEmpty()) {
                     MedicationDetailRow(label = "Waktu", value = medication.times.joinToString(", "))
                 }
 
                 if (medication.duration.isNotEmpty()) MedicationDetailRow(label = "Tempoh", value = medication.duration)
                 
-                // New Date Range Field
                 if (startStr.isNotEmpty()) {
                     val dateValue = if (medication.untilFinish) "$startStr sehingga habis" else if (endStr.isNotEmpty()) "$startStr - $endStr" else startStr
                     MedicationDetailRow(label = "Tarikh", value = dateValue)
@@ -235,29 +206,5 @@ fun MedicationDetailRow(label: String, value: String) {
 fun MedicationScreenEmptyPreview() {
     MediAlertTheme {
         MedicationContent(medications = emptyList(), isLoading = false)
-    }
-}
-
-@Preview(showBackground = true, name = "With Data")
-@Composable
-fun MedicationScreenDataPreview() {
-    MediAlertTheme {
-        MedicationContent(
-            medications = listOf(
-                Medication(
-                    id = "amlodipine_5mg",
-                    name = "amlodipine 5mg",
-                    unit = "tablet",
-                    dosage = "1",
-                    frequency = "Sekali sehari",
-                    times = listOf("09:00 AM"),
-                    duration = "30 hari",
-                    purpose = "Darah Tinggi",
-                    instruction = "Ambil selepas makan",
-                    doctorName = "Dr. Aminah"
-                )
-            ),
-            isLoading = false
-        )
     }
 }
