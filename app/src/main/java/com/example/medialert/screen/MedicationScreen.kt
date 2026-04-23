@@ -199,7 +199,7 @@ fun MedicationInfoCard(medication: Medication) {
 
                 if (medication.purpose.isNotEmpty()) MedicationDetailRow(label = "Tujuan", value = medication.purpose)
                 if (medication.instruction.isNotEmpty()) MedicationDetailRow(label = "Arahan", value = medication.instruction)
-                if (prescriptionDateStr.isNotEmpty()) MedicationDetailRow(label = "Tarikh Janji", value = prescriptionDateStr)
+                if (prescriptionDateStr.isNotEmpty()) MedicationDetailRow(label = "Tarikh preskripsi", value = prescriptionDateStr)
                 if (medication.doctorName.isNotEmpty()) MedicationDetailRow(label = "Doktor", value = medication.doctorName)
             }
         }
@@ -218,7 +218,7 @@ fun MedicationDetailRow(label: String, value: String) {
             text = "$label : ",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(100.dp),
+            modifier = Modifier.width(140.dp),
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
