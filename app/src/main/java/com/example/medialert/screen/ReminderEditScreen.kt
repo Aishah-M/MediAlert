@@ -1,8 +1,5 @@
 package com.example.medialert.screen
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.forEach
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,47 +41,39 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.medialert.R
 import com.example.medialert.data.Medication
 import com.example.medialert.data.Reminder
-import com.example.medialert.data.SampleData
 import com.example.medialert.theme.MediAlertTheme
-import kotlin.text.padStart
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReminderEditScreen(
-    // Receive existing data if editing, or null if adding new
     existingReminder: Reminder? = null,
     onSave: (Reminder) -> Unit,
     onCancel: () -> Unit
 ) {
-    // --- States initialized from the Reminder data class ---
-    var selectedMed by remember { mutableStateOf(existingReminder?.medication) }
-    var medNameExpanded by remember { mutableStateOf(false) }
-
+    // 1. Change to Text Field for manual input (e.g., Vitamin)
+    var medName by remember { mutableStateOf(existingReminder?.medication?.name ?: "") }
+    
     var dosageValue by remember { mutableStateOf(existingReminder?.dosage ?: "") }
-
     var selectedUnit by remember { mutableStateOf(existingReminder?.unit ?: "") }
     var unitExpanded by remember { mutableStateOf(false) }
     val unitList = listOf(
-        "ampoule(s)", "capsule(s)", "drop()", "gram(s)",
-        "injection(s)", "miligram(s)", "mililiter(s)", "mm",
-        "pill(s)", "sachet(s)", "spray(s)", "tablespoon(s)",
-        "teaspoon(s)", "piece(s)", "patch(es)"
+        "ampoule(s)", "capsule(s)", "drop(s)", "gram(s)",
+        "injection(s)", "miligram(s)", "mililiter(s)", "pill(s)", 
+        "sachet(s)", "spray(s)", "tablespoon(s)", "teaspoon(s)", 
+        "piece(s)", "patch(es)"
     )
 
-
-// To this (Adding .toString() to handle the Int coming from the data class):
+    // Inventory States
     var totalInventory by remember { mutableStateOf(existingReminder?.totalStock?.toString() ?: "") }
-    var remainingInventory by remember { mutableStateOf(existingReminder?.remainingStock?.toString() ?: "")}
+    var remainingInventory by remember { mutableStateOf(existingReminder?.remainingStock?.toString() ?: "") }
 
     var reminderTimes by remember { mutableStateOf(existingReminder?.times ?: emptyList()) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -100,78 +89,42 @@ fun ReminderEditScreen(
                 .padding(15.dp)
                 .verticalScroll(scrollState)
         ) {
-            // 1. Dropdown: Nama Ubat
-            ExposedDropdownMenuBox(
-                expanded = medNameExpanded,
-                onExpandedChange = { medNameExpanded = !medNameExpanded }
-            ) {
-                OutlinedTextField(
-                    value = selectedMed?.name?:"",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Pilih Nama Ubat") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = medNameExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor()
-                )
-                ExposedDropdownMenu(
-                    expanded = medNameExpanded,
-                    onDismissRequest = { medNameExpanded = false }
-                ) {
-                    SampleData.availableMedications.forEach { med ->
-                        DropdownMenuItem(
-                            text = { Text(med.name) },
-                            onClick = {
-                                selectedMed = med
-                                medNameExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-            // --- IMAGE DISPLAY LOGIC ---
-            // If a medicine is selected, show the image right below the dropdown
-            selectedMed?.imageRes?.let { data ->
-                Spacer(modifier = Modifier.height(12.dp))
-                Image(
-                    painter = painterResource(id = data),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp)
-                        .clip(MaterialTheme.shapes.medium)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant,
-                            MaterialTheme.shapes.medium
-                        ),
-                    contentScale = ContentScale.Fit
-                )
-            }
+            Text(
+                text = if (existingReminder == null) "Tambah Peringatan Baru" else "Ubah Peringatan",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Input: Nama Ubat
+            OutlinedTextField(
+                value = medName,
+                onValueChange = { medName = it },
+                label = { Text("Nama Ubat (Contoh: Vitamin C)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Row containing Dosage and Unit
+            // Dosage and Unit
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Dos Diambil (Numeric Input)
                 OutlinedTextField(
                     value = dosageValue,
-                    onValueChange = { if (it.all { char -> char.isDigit() }) dosageValue = it},
-                    label = { Text("Dos diambil") },
+                    onValueChange = { if (it.all { char -> char.isDigit() }) dosageValue = it },
+                    label = { Text("Dos") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true
                 )
 
-                // Unit (Dropdown)
                 ExposedDropdownMenuBox(
                     expanded = unitExpanded,
                     onExpandedChange = { unitExpanded = !unitExpanded },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1.2f)
                 ) {
                     OutlinedTextField(
                         value = selectedUnit,
@@ -202,7 +155,7 @@ fun ReminderEditScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Inventori Section
+            // Inventory Section
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -227,7 +180,7 @@ fun ReminderEditScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 4. Masa Peringatan Section
+            // Reminder Times
             Text(
                 text = "Masa Peringatan",
                 style = MaterialTheme.typography.titleMedium,
@@ -252,123 +205,94 @@ fun ReminderEditScreen(
                     }) {
                         Icon(Icons.Default.Delete, contentDescription = "Padam", tint = MaterialTheme.colorScheme.error)
                     }
-//                    IconButton(onClick = { reminderTimes = reminderTimes.filterIndexed { i, _ -> i != index } }) {
-//                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-//                    }
                 }
             }
 
             Button(
                 onClick = { showTimePicker = true },
                 modifier = Modifier.padding(top = 8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Tambah Masa")
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // 5. Action Buttons
+            // Actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(
-                    onClick = {
-                        // Reset all states
-                        selectedMed = null; dosageValue = ""; selectedUnit = ""; totalInventory = ""
-                        remainingInventory = ""; reminderTimes = emptyList()
-                    },
+                    onClick = onCancel,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Set Semula")
+                    Text("Batal")
                 }
                 Button(
-                    onClick = { /* TODO: Save to Room/LocalStorage */ },
-                    modifier = Modifier.weight(1f)
+                    onClick = {
+                        val newReminder = (existingReminder ?: Reminder()).copy(
+                            medication = Medication(name = medName),
+                            dosage = dosageValue,
+                            unit = selectedUnit,
+                            totalStock = totalInventory.toIntOrNull() ?: 0,
+                            remainingStock = remainingInventory.toIntOrNull() ?: 0,
+                            times = reminderTimes
+                        )
+                        onSave(newReminder)
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = medName.isNotBlank() && reminderTimes.isNotEmpty()
                 ) {
                     Text("Simpan")
                 }
             }
         }
     }
-    /*
-    // Time Picker Dialog logic
+
     if (showTimePicker) {
-        val timePickerState = rememberTimePickerState()
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val formattedTime = "${timePickerState.hour}:${timePickerState.minute.toString().padStart(2, '0')}"
-                    reminderTimes = reminderTimes + formattedTime
-                    showTimePicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Batal") }
-            },
-            text = { TimePicker(state = timePickerState) }
-        )
-    }
-     */
-    // --- CORRECTED TIME PICKER DIALOG ---
-    if (showTimePicker) {
+        val calendar = Calendar.getInstance()
         val timePickerState = rememberTimePickerState(
-            is24Hour = false // This makes the Picker UI show AM/PM buttons
+            initialHour = calendar.get(Calendar.HOUR_OF_DAY),
+            initialMinute = calendar.get(Calendar.MINUTE)
         )
+        
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    // Logic to convert 24h data to 12h display string
-                    val hour = timePickerState.hour
-                    val minute = timePickerState.minute.toString().padStart(2, '0')
-                    val amPm = if (hour < 12) "AM" else "PM"
-
-                    val displayHour = when {
-                        hour == 0 -> 12
-                        hour > 12 -> hour - 12
-                        else -> hour
+                    val hour = if (timePickerState.hour == 0 || timePickerState.hour == 12) 12 else timePickerState.hour % 12
+                    val amPm = if (timePickerState.hour < 12) "AM" else "PM"
+                    val formattedTime = String.format(Locale.getDefault(), "%02d:%02d %s", hour, timePickerState.minute, amPm)
+                    
+                    if (!reminderTimes.contains(formattedTime)) {
+                        reminderTimes = (reminderTimes + formattedTime).sorted()
                     }
-
-                    val formattedTime = "$displayHour:$minute $amPm"
-
-                    reminderTimes = reminderTimes + formattedTime
                     showTimePicker = false
-                }) { Text("OK") }
+                }) { Text("Tambah") }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) { Text("Batal") }
             },
-            text = { TimePicker(state = timePickerState) }
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Empty State")
-@Composable
-fun ReminderEditEmptyPreview() {
-    MediAlertTheme {
-        ReminderEditScreen(
-            existingReminder = null, // null means "Add New" mode
-            onSave = {},
-            onCancel = {}
+            title = { Text("Pilih Masa Peringatan") },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    TimePicker(state = timePickerState)
+                }
+            }
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun ReminderEditPreview() {
+fun ReminderEditScreenPreview() {
     MediAlertTheme {
-        // Test with existing sample data
-        ReminderEditScreen(
-            existingReminder = SampleData.medicationReminders[0],
-            onSave = {},
-            onCancel = {}
-        )
+        ReminderEditScreen(onSave = {}, onCancel = {})
     }
 }
