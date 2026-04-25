@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.medialert.R
 import com.example.medialert.data.Reminder
-import com.example.medialert.data.SampleData
 import com.example.medialert.theme.MediAlertTheme
 
 @Composable
@@ -30,6 +29,8 @@ fun ReminderScreen(
     reminders: List<Reminder>,
     modifier: Modifier = Modifier
 ) {
+    var reminderToDelete by remember { mutableStateOf<Reminder?>(null) }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -37,7 +38,8 @@ fun ReminderScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(13.dp),
+                .padding(horizontal = 13.dp)
+                .padding(bottom = 13.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(
@@ -77,12 +79,37 @@ fun ReminderScreen(
                         ReminderItem(
                             reminder = reminder,
                             onEdit = { onEditClick(reminder) },
-                            onDelete = { onDeleteClick(reminder) }
+                            onDelete = { reminderToDelete = reminder }
                         )
                     }
                 }
             }
         }
+    }
+
+    // Delete Confirmation Dialog
+    if (reminderToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { reminderToDelete = null },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        reminderToDelete?.let { onDeleteClick(it) }
+                        reminderToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Padam", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { reminderToDelete = null }) {
+                    Text("Batal")
+                }
+            },
+            title = { Text("Padam Peringatan?") },
+            text = { Text("Adakah anda pasti ingin memadam peringatan untuk ${reminderToDelete?.medicationName}?") }
+        )
     }
 }
 
@@ -108,7 +135,7 @@ fun ReminderItem(reminder: Reminder, onEdit: () -> Unit, onDelete: () -> Unit) {
                     contentScale = ContentScale.Crop
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = reminder.medication?.name ?: "Ubat", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                Text(text = reminder.medicationName.ifEmpty { "Ubat" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                 Text(text = "⏰ ${reminder.times.joinToString(", ")}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(text = "Dos: ${reminder.dosage} ${reminder.unit}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.secondary)
                 Spacer(modifier = Modifier.height(12.dp))
@@ -134,5 +161,33 @@ fun ReminderItem(reminder: Reminder, onEdit: () -> Unit, onDelete: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ReminderScreenPreview() {
+    MediAlertTheme {
+        ReminderScreen(
+            onAddClick = {},
+            onEditClick = {},
+            onDeleteClick = {},
+            reminders = listOf(
+                Reminder(
+                    medicationName = "Vitamin C",
+                    dosage = "1",
+                    unit = "tablet",
+                    remainingStock = 10,
+                    times = listOf("08:00 AM", "08:00 PM")
+                ),
+                Reminder(
+                    medicationName = "Fish Oil",
+                    dosage = "2",
+                    unit = "capsule(s)",
+                    remainingStock = 3,
+                    times = listOf("12:00 PM")
+                )
+            )
+        )
     }
 }

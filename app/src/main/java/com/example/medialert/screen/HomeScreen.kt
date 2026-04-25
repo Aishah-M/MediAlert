@@ -33,9 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +50,7 @@ import com.example.medialert.data.UserProfile
 import com.example.medialert.data.Appointment
 import com.example.medialert.viewModel.AppointmentVM
 import com.example.medialert.viewModel.HomeVM
+import com.example.medialert.viewModel.ReminderVM
 import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -61,19 +60,18 @@ import java.util.Calendar
 fun HomeScreen(
     homeViewModel: HomeVM = viewModel(),
     appointmentViewModel: AppointmentVM = viewModel(),
+    reminderViewModel: ReminderVM = viewModel(),
     onProfileClick: () -> Unit,
     onContactClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val user by homeViewModel.userProfile
     val appointments by appointmentViewModel.appointments
+    val reminders by reminderViewModel.reminders
     val isLoading by homeViewModel.isLoading
     
     // Only pick the first appointment that is "Akan datang"
     val nextAppointment = appointments.find { it.status == "Akan datang" }
-
-    // Local state for medication list to demonstrate stock deduction
-    var reminders by remember { mutableStateOf(com.example.medialert.data.SampleData.medicationReminders) }
 
     if (isLoading && user == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -87,8 +85,10 @@ fun HomeScreen(
             onProfileClick = onProfileClick,
             onContactClick = onContactClick,
             onTakenClick = { reminder ->
-                reminders = reminders.map {
-                    if (it.id == reminder.id) it.takeMedication() else it
+                // Logic to update Firestore via ViewModel
+                val updatedReminder = reminder.takeMedication()
+                reminderViewModel.saveReminder(updatedReminder) {
+                    // Success callback if needed
                 }
             },
             modifier = modifier
@@ -133,15 +133,21 @@ fun HomeContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(reminders) { reminder ->
-                    MedicationTaskCard(
-                        reminder = reminder,
-                        onTakenClick = { onTakenClick(reminder) }
-                    )
+            if (reminders.isEmpty()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(text = "Tiada jadual ubat untuk hari ini.", color = MaterialTheme.colorScheme.outline)
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(reminders) { reminder ->
+                        MedicationTaskCard(
+                            reminder = reminder,
+                            onTakenClick = { onTakenClick(reminder) }
+                        )
+                    }
                 }
             }
 
@@ -291,7 +297,7 @@ fun MedicationTaskCard(reminder: Reminder, onTakenClick: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = reminder.medication?.name ?: "Ubat",
+                    text = reminder.medicationName.ifEmpty { "Ubat" },
                     fontWeight = FontWeight.Bold,
                     color = if (reminder.isTaken) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface
                 )
@@ -378,7 +384,7 @@ fun HomePreviewWithData() {
             ),
             reminders = listOf(
                 Reminder(
-                    medication = com.example.medialert.data.Medication(name = "Amoxicillin 250mg"),
+                    medicationName = "Amoxicillin 250mg",
                     dosage = "1",
                     unit = "capsule(s)",
                     remainingStock = 12,

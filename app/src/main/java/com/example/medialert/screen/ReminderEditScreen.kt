@@ -1,6 +1,7 @@
 package com.example.medialert.screen
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -45,7 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.medialert.data.Medication
 import com.example.medialert.data.Reminder
 import com.example.medialert.theme.MediAlertTheme
 import java.util.Calendar
@@ -58,8 +58,8 @@ fun ReminderEditScreen(
     onSave: (Reminder) -> Unit,
     onCancel: () -> Unit
 ) {
-    // 1. Change to Text Field for manual input (e.g., Vitamin)
-    var medName by remember { mutableStateOf(existingReminder?.medication?.name ?: "") }
+    // Corrected state initialization using medicationName string
+    var medName by remember { mutableStateOf(existingReminder?.medicationName ?: "") }
     
     var dosageValue by remember { mutableStateOf(existingReminder?.dosage ?: "") }
     var selectedUnit by remember { mutableStateOf(existingReminder?.unit ?: "") }
@@ -237,7 +237,7 @@ fun ReminderEditScreen(
                 Button(
                     onClick = {
                         val newReminder = (existingReminder ?: Reminder()).copy(
-                            medication = Medication(name = medName),
+                            medicationName = medName,
                             dosage = dosageValue,
                             unit = selectedUnit,
                             totalStock = totalInventory.toIntOrNull() ?: 0,

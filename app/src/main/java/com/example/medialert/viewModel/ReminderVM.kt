@@ -29,8 +29,8 @@ class ReminderVM : ViewModel() {
 
         db.collection("patients")
             .document(userId)
-            .collection("reminders") // Using a separate collection for patient-added ones
-            .orderBy("medication.name", Query.Direction.ASCENDING)
+            .collection("reminders")
+            .orderBy("medicationName", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, e ->
                 _isLoading.value = false
                 if (e != null) {

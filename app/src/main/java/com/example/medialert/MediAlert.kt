@@ -1,22 +1,16 @@
 package com.example.medialert
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -26,19 +20,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.medialert.screen.AppointmentScreen
-import com.example.medialert.screen.ContactScreen
-import com.example.medialert.screen.HomeScreen
-import com.example.medialert.screen.LoginScreen
-import com.example.medialert.screen.RegisterScreen
-import com.example.medialert.screen.MedicationScreen
-import com.example.medialert.screen.ProfileEditScreen
-import com.example.medialert.screen.ProfileScreen
-import com.example.medialert.screen.ReminderEditScreen
-import com.example.medialert.screen.ReminderScreen
+import com.example.medialert.screen.*
 import com.example.medialert.theme.MediAlertTheme
-import com.example.medialert.data.SampleData
+import com.example.medialert.data.Reminder
+import com.example.medialert.viewModel.ReminderVM
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 enum class MediAlertScreen(@StringRes val title: Int) {
     Login(R.string.login),
@@ -59,20 +47,35 @@ data class NavItem(
     val label: String
 )
 
+@Composable
+fun MediAlertApp() {
+    val isPreview = LocalInspectionMode.current
+    val currentUser = if (isPreview) null else try {
+        FirebaseAuth.getInstance().currentUser
+    } catch (e: Exception) {
+        null
+    }
+    
+    val startDestination = if (currentUser != null) MediAlertScreen.Home.name else MediAlertScreen.Login.name
+    
+    MediAlertAppContent(startDestination = startDestination)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MediAlertApp(
-    navController: NavHostController = rememberNavController()
+fun MediAlertAppContent(
+    navController: NavHostController = rememberNavController(),
+    startDestination: String
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
-
-    // Check if user is already logged in
-    val currentUser = try { FirebaseAuth.getInstance().currentUser } catch (e: Exception) { null }
-    val startDestination = if (currentUser != null) MediAlertScreen.Home.name else MediAlertScreen.Login.name
+    val isPreview = LocalInspectionMode.current
+    val currentRoute = backStackEntry?.destination?.route ?: startDestination
+    
+    // State to hold the reminder being edited
+    var editingReminder by remember { mutableStateOf<Reminder?>(null) }
 
     val currentScreen = try {
-        MediAlertScreen.valueOf(currentRoute ?: startDestination)
+        MediAlertScreen.valueOf(currentRoute)
     } catch (e: Exception) {
         MediAlertScreen.Home
     }
@@ -85,7 +88,6 @@ fun MediAlertApp(
         NavItem(MediAlertScreen.Profile, R.drawable.person_24dp_000000, "Profil")
     )
 
-    // Only show bottom bar on main tabs
     val showBottomBar = currentRoute in listOf(
         MediAlertScreen.Home.name,
         MediAlertScreen.Appointment.name,
@@ -94,7 +96,6 @@ fun MediAlertApp(
         MediAlertScreen.Profile.name
     )
 
-    // Show TopBar except on Home and Login/Register
     val showTopBar = currentRoute != MediAlertScreen.Home.name && 
                      currentRoute != MediAlertScreen.Login.name && 
                      currentRoute != MediAlertScreen.Register.name
@@ -145,12 +146,7 @@ fun MediAlertApp(
                                     contentDescription = item.label
                                 )
                             },
-                            label = { 
-                                Text(
-                                    text = item.label,
-                                    fontSize = 10.sp
-                                ) 
-                            },
+                            label = { Text(text = item.label, fontSize = 10.sp) },
                             alwaysShowLabel = true
                         )
                     }
@@ -158,79 +154,93 @@ fun MediAlertApp(
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(route = MediAlertScreen.Login.name) {
-                LoginScreen(
-                    onLoginSuccess = {
-                        navController.navigate(MediAlertScreen.Home.name) {
-                            popUpTo(MediAlertScreen.Login.name) { inclusive = true }
+        if (isPreview) {
+            Box(modifier = Modifier.padding(innerPadding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "Pratonton Skrin: ${stringResource(currentScreen.title)}", style = MaterialTheme.typography.titleLarge)
+            }
+        } else {
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable(route = MediAlertScreen.Login.name) {
+                    LoginScreen(
+                        onLoginSuccess = {
+                            navController.navigate(MediAlertScreen.Home.name) {
+                                popUpTo(MediAlertScreen.Login.name) { inclusive = true }
+                            }
+                        },
+                        onNavigateToRegister = { navController.navigate(MediAlertScreen.Register.name) }
+                    )
+                }
+                composable(route = MediAlertScreen.Register.name) {
+                    RegisterScreen(
+                        onRegisterSuccess = {
+                            navController.navigate(MediAlertScreen.Home.name) {
+                                popUpTo(MediAlertScreen.Login.name) { inclusive = true }
+                            }
+                        },
+                        onNavigateToLogin = {
+                            navController.navigate(MediAlertScreen.Login.name) {
+                                popUpTo(MediAlertScreen.Register.name) { inclusive = true }
+                            }
                         }
-                    },
-                    onNavigateToRegister = {
-                        navController.navigate(MediAlertScreen.Register.name)
-                    }
-                )
-            }
-            composable(route = MediAlertScreen.Register.name) {
-                RegisterScreen(
-                    onRegisterSuccess = {
-                        navController.navigate(MediAlertScreen.Home.name) {
-                            popUpTo(MediAlertScreen.Login.name) { inclusive = true }
+                    )
+                }
+                composable(route = MediAlertScreen.Home.name) {
+                    HomeScreen(
+                        onProfileClick = { navController.navigate(MediAlertScreen.Profile.name) },
+                        onContactClick = { navController.navigate(MediAlertScreen.Contact.name) }
+                    )
+                }
+                composable(route = MediAlertScreen.Appointment.name) { AppointmentScreen() }
+                composable(route = MediAlertScreen.Medication.name) { MedicationScreen() }
+                
+                composable(route = MediAlertScreen.Reminder.name) {
+                    val reminderVM: ReminderVM = viewModel()
+                    val reminders by reminderVM.reminders
+                    
+                    ReminderScreen(
+                        reminders = reminders,
+                        onAddClick = { 
+                            editingReminder = null
+                            navController.navigate(MediAlertScreen.EditReminder.name) 
+                        },
+                        onEditClick = { reminder ->
+                            editingReminder = reminder
+                            navController.navigate(MediAlertScreen.EditReminder.name)
+                        },
+                        onDeleteClick = { reminder -> reminderVM.deleteReminder(reminder.id) }
+                    )
+                }
+                
+                composable(route = MediAlertScreen.EditReminder.name) {
+                    val reminderVM: ReminderVM = viewModel()
+                    ReminderEditScreen(
+                        existingReminder = editingReminder,
+                        onSave = { reminder ->
+                            reminderVM.saveReminder(reminder) {
+                                navController.popBackStack()
+                            }
+                        },
+                        onCancel = { navController.popBackStack() }
+                    )
+                }
+                
+                composable(route = MediAlertScreen.Profile.name) {
+                    ProfileScreen(
+                        onEditClick = { navController.navigate(MediAlertScreen.EditProfile.name) },
+                        onLogoutClick = {
+                            try { FirebaseAuth.getInstance().signOut() } catch (e: Exception) {}
+                            navController.navigate(MediAlertScreen.Login.name) { popUpTo(0) { inclusive = true } }
                         }
-                    },
-                    onNavigateToLogin = {
-                        navController.navigate(MediAlertScreen.Login.name) {
-                            popUpTo(MediAlertScreen.Register.name) { inclusive = true }
-                        }
-                    }
-                )
-            }
-            composable(route = MediAlertScreen.Home.name) {
-                HomeScreen(
-                    onProfileClick = { navController.navigate(MediAlertScreen.Profile.name) },
-                    onContactClick = { navController.navigate(MediAlertScreen.Contact.name) }
-                )
-            }
-            composable(route = MediAlertScreen.Appointment.name) {
-                AppointmentScreen()
-            }
-            composable(route = MediAlertScreen.Medication.name) {
-                MedicationScreen()
-            }
-            composable(route = MediAlertScreen.Reminder.name) {
-                ReminderScreen(
-                    reminders = SampleData.medicationReminders,
-                    onAddClick = { navController.navigate(MediAlertScreen.EditReminder.name) },
-                    onEditClick = { navController.navigate(MediAlertScreen.EditReminder.name) }
-                )
-            }
-            composable(route = MediAlertScreen.Profile.name) {
-                ProfileScreen(
-                    onEditClick = { navController.navigate(MediAlertScreen.EditProfile.name) },
-                    onLogoutClick = {
-                        try { FirebaseAuth.getInstance().signOut() } catch (e: Exception) {}
-                        navController.navigate(MediAlertScreen.Login.name) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
-                )
-            }
-            composable(route = MediAlertScreen.Contact.name) {
-                ContactScreen()
-            }
-            composable(route = MediAlertScreen.EditProfile.name) {
-                ProfileEditScreen(onSaveClick = { navController.popBackStack() })
-            }
-            composable(route = MediAlertScreen.EditReminder.name) {
-                ReminderEditScreen(
-                    existingReminder = null,
-                    onSave = { navController.popBackStack() },
-                    onCancel = { navController.popBackStack() }
-                )
+                    )
+                }
+                composable(route = MediAlertScreen.Contact.name) { ContactScreen() }
+                composable(route = MediAlertScreen.EditProfile.name) {
+                    ProfileEditScreen(onSaveClick = { navController.popBackStack() })
+                }
             }
         }
     }
