@@ -64,12 +64,7 @@ fun ReminderEditScreen(
     var dosageValue by remember { mutableStateOf(existingReminder?.dosage ?: "") }
     var selectedUnit by remember { mutableStateOf(existingReminder?.unit ?: "") }
     var unitExpanded by remember { mutableStateOf(false) }
-    val unitList = listOf(
-        "ampoule(s)", "capsule(s)", "drop(s)", "gram(s)",
-        "injection(s)", "miligram(s)", "mililiter(s)", "pill(s)", 
-        "sachet(s)", "spray(s)", "tablespoon(s)", "teaspoon(s)", 
-        "piece(s)", "patch(es)"
-    )
+    val unitList = listOf( "biji", "sudu teh", "sudu besar", "sacet", "mililiter(ml)", "titis", "sapuan", "semburan", "sedutan", "keping")
 
     // Inventory States
     var totalInventory by remember { mutableStateOf(existingReminder?.totalStock?.toString() ?: "") }
