@@ -1,45 +1,15 @@
 package com.example.medialert.screen
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -48,8 +18,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.medialert.data.Reminder
 import com.example.medialert.theme.MediAlertTheme
-import java.util.Calendar
-import java.util.Locale
+import com.google.firebase.Timestamp
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,21 +29,27 @@ fun ReminderEditScreen(
     onSave: (Reminder) -> Unit,
     onCancel: () -> Unit
 ) {
-    // Corrected state initialization using medicationName string
     var medName by remember { mutableStateOf(existingReminder?.medicationName ?: "") }
-    
     var dosageValue by remember { mutableStateOf(existingReminder?.dosage ?: "") }
     var selectedUnit by remember { mutableStateOf(existingReminder?.unit ?: "") }
     var unitExpanded by remember { mutableStateOf(false) }
     val unitList = listOf( "biji", "sudu teh", "sudu besar", "sacet", "mililiter(ml)", "titis", "sapuan", "semburan", "sedutan", "keping")
 
-    // Inventory States
     var totalInventory by remember { mutableStateOf(existingReminder?.totalStock?.toString() ?: "") }
     var remainingInventory by remember { mutableStateOf(existingReminder?.remainingStock?.toString() ?: "") }
 
     var reminderTimes by remember { mutableStateOf(existingReminder?.times ?: emptyList()) }
     var showTimePicker by remember { mutableStateOf(false) }
 
+    // Scheduling states
+    var startDate by remember { mutableStateOf(existingReminder?.startDate) }
+    var endDate by remember { mutableStateOf(existingReminder?.endDate) }
+    var untilFinish by remember { mutableStateOf(existingReminder?.untilFinish ?: false) }
+
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+
+    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val scrollState = rememberScrollState()
 
     Surface(
@@ -91,7 +68,6 @@ fun ReminderEditScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Input: Nama Ubat
             OutlinedTextField(
                 value = medName,
                 onValueChange = { medName = it },
@@ -102,7 +78,6 @@ fun ReminderEditScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Dosage and Unit
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -150,7 +125,6 @@ fun ReminderEditScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Inventory Section
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -175,7 +149,55 @@ fun ReminderEditScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Reminder Times
+            // --- DATE RANGE SECTION ---
+            Text(
+                text = "Tempoh Pengambilan",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = startDate?.toDate()?.let { sdf.format(it) } ?: "",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Tarikh Mula") },
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = {
+                    IconButton(onClick = { showStartDatePicker = true }) {
+                        Icon(Icons.Default.DateRange, contentDescription = "Pilih Tarikh")
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = untilFinish,
+                    onCheckedChange = { untilFinish = it }
+                )
+                Text(text = "Sehingga habis ubat", style = MaterialTheme.typography.bodyMedium)
+            }
+
+            if (!untilFinish) {
+                OutlinedTextField(
+                    value = endDate?.toDate()?.let { sdf.format(it) } ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Tarikh Tamat") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = { showEndDatePicker = true }) {
+                            Icon(Icons.Default.DateRange, contentDescription = "Pilih Tarikh")
+                        }
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- TIME PICKER SECTION ---
             Text(
                 text = "Masa Peringatan",
                 style = MaterialTheme.typography.titleMedium,
@@ -218,7 +240,6 @@ fun ReminderEditScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -237,16 +258,61 @@ fun ReminderEditScreen(
                             unit = selectedUnit,
                             totalStock = totalInventory.toIntOrNull() ?: 0,
                             remainingStock = remainingInventory.toIntOrNull() ?: 0,
-                            times = reminderTimes
+                            times = reminderTimes,
+                            startDate = startDate,
+                            endDate = if (untilFinish) null else endDate,
+                            untilFinish = untilFinish
                         )
                         onSave(newReminder)
                     },
                     modifier = Modifier.weight(1f),
-                    enabled = medName.isNotBlank() && reminderTimes.isNotEmpty()
+                    enabled = medName.isNotBlank() && reminderTimes.isNotEmpty() && startDate != null
                 ) {
                     Text("Simpan")
                 }
             }
+        }
+    }
+
+    // --- DIALOGS ---
+
+    if (showStartDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        startDate = Timestamp(Date(it))
+                    }
+                    showStartDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartDatePicker = false }) { Text("Batal") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showEndDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        endDate = Timestamp(Date(it))
+                    }
+                    showEndDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndDatePicker = false }) { Text("Batal") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 

@@ -1,6 +1,5 @@
 package com.example.medialert.screen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -112,11 +110,11 @@ fun ProfileContent(
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
-                Image(
+                Icon(
                     painter = painterResource(id = R.drawable.person_24dp_000000),
                     contentDescription = "Profile Picture",
                     modifier = Modifier.size(50.dp),
-                    contentScale = ContentScale.Crop
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
 
@@ -130,12 +128,12 @@ fun ProfileContent(
                 Icon(
                     painter = painterResource(id = R.drawable.baseline_edit_24),
                     contentDescription = "Edit Profile",
-                    tint = androidx.compose.ui.graphics.Color.Black,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
                     text = "Ubah profil",
-                    color = androidx.compose.ui.graphics.Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold
                 )

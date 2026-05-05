@@ -1,5 +1,6 @@
 package com.example.medialert.data
 
+import com.google.firebase.Timestamp
 import java.util.UUID
 
 data class Reminder(
@@ -14,7 +15,12 @@ data class Reminder(
     val totalStock: Int = 0,
     val remainingStock: Int = 0,
     val times: List<String> = emptyList(),
-    val isTaken: Boolean = false
+    val isTaken: Boolean = false,
+    
+    // Scheduling fields
+    val startDate: Timestamp? = null,
+    val endDate: Timestamp? = null,
+    val untilFinish: Boolean = false
 ) {
     fun takeMedication(): Reminder {
         return if (!isTaken && remainingStock > 0) {

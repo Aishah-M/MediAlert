@@ -1,7 +1,5 @@
 package com.example.medialert.screen
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,8 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -20,6 +16,8 @@ import androidx.compose.ui.unit.sp
 import com.example.medialert.R
 import com.example.medialert.data.Reminder
 import com.example.medialert.theme.MediAlertTheme
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun ReminderScreen(
@@ -27,7 +25,7 @@ fun ReminderScreen(
     onEditClick: (Reminder) -> Unit,
     onDeleteClick: (Reminder) -> Unit,
     reminders: List<Reminder>,
-    modifier: Modifier = Modifier
+
 ) {
     var reminderToDelete by remember { mutableStateOf<Reminder?>(null) }
 
@@ -116,6 +114,9 @@ fun ReminderScreen(
 @Composable
 fun ReminderItem(reminder: Reminder, onEdit: () -> Unit, onDelete: () -> Unit) {
     val isLowStock = reminder.remainingStock < 5
+    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val startStr = reminder.startDate?.toDate()?.let { sdf.format(it) } ?: ""
+    val endStr = reminder.endDate?.toDate()?.let { sdf.format(it) } ?: ""
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -128,16 +129,23 @@ fun ReminderItem(reminder: Reminder, onEdit: () -> Unit, onDelete: () -> Unit) {
             verticalAlignment = Alignment.Top
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Image(
-                    painter = painterResource(id = R.drawable.mal),
-                    contentDescription = null,
-                    modifier = Modifier.size(70.dp).clip(MaterialTheme.shapes.medium).border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium),
-                    contentScale = ContentScale.Crop
+                Text(
+                    text = reminder.medicationName.ifEmpty { "Ubat" },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = reminder.medicationName.ifEmpty { "Ubat" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                 Text(text = "⏰ ${reminder.times.joinToString(", ")}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(text = "Dos: ${reminder.dosage} ${reminder.unit}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.secondary)
+
+                Spacer(modifier = Modifier.height(7.dp))
+
+                // Show Date Range
+                if (startStr.isNotEmpty()) {
+                    val dateValue = if (reminder.untilFinish) "$startStr sehingga habis" else if (endStr.isNotEmpty()) "$startStr - $endStr" else startStr
+                    Text(text = "Tarikh:  $dateValue", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outline)
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
                     color = if (isLowStock) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer,
