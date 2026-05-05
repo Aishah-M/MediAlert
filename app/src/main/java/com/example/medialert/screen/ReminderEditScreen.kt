@@ -1,5 +1,6 @@
 package com.example.medialert.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -31,7 +32,7 @@ fun ReminderEditScreen(
 ) {
     var medName by remember { mutableStateOf(existingReminder?.medicationName ?: "") }
     var dosageValue by remember { mutableStateOf(existingReminder?.dosage ?: "") }
-    var selectedUnit by remember { mutableStateOf(existingReminder?.unit ?: "") }
+    var selectedUnit by remember { mutableStateOf(existingReminder?.unit ?: "biji") }
     var unitExpanded by remember { mutableStateOf(false) }
     val unitList = listOf( "biji", "sudu teh", "sudu besar", "sacet", "mililiter(ml)", "titis", "sapuan", "semburan", "sedutan", "keping")
 
@@ -283,7 +284,12 @@ fun ReminderEditScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        startDate = Timestamp(Date(it))
+                        val date = Date(it)
+                        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                        cal.time = date
+                        val localCal = Calendar.getInstance()
+                        localCal.set(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
+                        startDate = Timestamp(localCal.time)
                     }
                     showStartDatePicker = false
                 }) { Text("OK") }
@@ -303,7 +309,12 @@ fun ReminderEditScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        endDate = Timestamp(Date(it))
+                        val date = Date(it)
+                        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                        cal.time = date
+                        val localCal = Calendar.getInstance()
+                        localCal.set(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), 23, 59, 59)
+                        endDate = Timestamp(localCal.time)
                     }
                     showEndDatePicker = false
                 }) { Text("OK") }
@@ -332,7 +343,17 @@ fun ReminderEditScreen(
                     val formattedTime = String.format(Locale.getDefault(), "%02d:%02d %s", hour, timePickerState.minute, amPm)
                     
                     if (!reminderTimes.contains(formattedTime)) {
-                        reminderTimes = (reminderTimes + formattedTime).sorted()
+                        // Chronological sorting of 12-hour format strings
+                        val updatedList = (reminderTimes + formattedTime).sortedBy { time ->
+                            val parts = time.split("[: ]".toRegex())
+                            var h = parts[0].toInt()
+                            val m = parts[1].toInt()
+                            val ap = parts[parts.size - 1]
+                            if (ap == "PM" && h < 12) h += 12
+                            if (ap == "AM" && h == 12) h = 0
+                            h * 60 + m
+                        }
+                        reminderTimes = updatedList
                     }
                     showTimePicker = false
                 }) { Text("Tambah") }

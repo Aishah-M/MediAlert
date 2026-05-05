@@ -7,14 +7,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
-import com.example.medialert.data.Appointment;
-import com.example.medialert.data.Medication;
-import com.example.medialert.data.Reminder;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -31,187 +30,168 @@ public class AlarmScheduler {
     public void scheduleAllAlarms() {
         String userId = FirebaseAuth.getInstance().getUid();
         if (userId == null) {
-            Log.w(TAG, "UserId is null, skipping scheduling.");
+            Log.w(TAG, "No user logged in. Skipping alarms.");
             return;
         }
-        Log.d(TAG, "Starting sync for user: " + userId);
-        scheduleMedicationAlarms(userId);
-        scheduleAppointmentAlarms(userId);
-        scheduleCustomReminderAlarms(userId);
+        Log.d(TAG, "=== Syncing Alarms for UID: " + userId + " ===");
+        
+        fetchAndScheduleMedications(userId);
+        fetchAndScheduleAppointments(userId);
+        fetchAndScheduleReminders(userId);
     }
 
-    private void scheduleMedicationAlarms(String userId) {
+    private void fetchAndScheduleMedications(String userId) {
         db.collection("patients").document(userId).collection("medications")
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    Log.d(TAG, "Medications found: " + queryDocumentSnapshots.size());
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        Medication med = doc.toObject(Medication.class);
-                        
+                .addOnSuccessListener(snapshots -> {
+                    Log.d(TAG, "[Medications] Found: " + snapshots.size());
+                    for (DocumentSnapshot doc : snapshots) {
+                        String name = doc.getString("name");
+                        if (name == null) name = doc.getString("medicationName");
+                        if (name == null) name = "Ubat Preskripsi";
+
+                        // Scheduling validation
+                        Boolean untilFinish = doc.getBoolean("untilFinish");
+                        Timestamp endTs = doc.getTimestamp("endDate");
                         long now = System.currentTimeMillis();
-                        if (med.getEndDate() != null && med.getEndDate().toDate().getTime() < now && !med.getUntilFinish()) {
-                            Log.d(TAG, "Skipping expired med: " + med.getName());
+                        if (endTs != null && endTs.toDate().getTime() < now && (untilFinish == null || !untilFinish)) {
                             continue;
                         }
 
-                        List<String> times = med.getTimes();
+                        List<String> times = (List<String>) doc.get("times");
                         if (times != null) {
-                            for (String time : times) {
-                                scheduleMedicationAlarm(med.getName(), time, doc.getId());
-                            }
-                        }
-                    }
-                })
-                .addOnFailureListener(e -> Log.e(TAG, "Error fetching medications", e));
-    }
-
-    private void scheduleCustomReminderAlarms(String userId) {
-        db.collection("patients").document(userId).collection("reminders")
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    Log.d(TAG, "Custom reminders found: " + queryDocumentSnapshots.size());
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        Reminder reminder = doc.toObject(Reminder.class);
-                        List<String> times = reminder.getTimes();
-                        if (times != null) {
-                            for (String time : times) {
-                                scheduleReminderAlarm(reminder.getMedicationName(), time, doc.getId());
+                            for (String timeStr : times) {
+                                scheduleAlarm(name, timeStr, doc.getId(), "MEDICATION");
                             }
                         }
                     }
                 });
     }
 
-    //MEDICATION
+    private void fetchAndScheduleReminders(String userId) {
+        db.collection("patients").document(userId).collection("reminders")
+                .get()
+                .addOnSuccessListener(snapshots -> {
+                    Log.d(TAG, "[Reminders] Found: " + snapshots.size());
+                    for (DocumentSnapshot doc : snapshots) {
+                        String name = doc.getString("medicationName");
+                        if (name == null) name = "Peringatan";
+
+                        // Scheduling validation (Stop if past endDate)
+                        Boolean untilFinish = doc.getBoolean("untilFinish");
+                        Timestamp endTs = doc.getTimestamp("endDate");
+                        long now = System.currentTimeMillis();
+                        if (endTs != null && endTs.toDate().getTime() < now && (untilFinish == null || !untilFinish)) {
+                            Log.d(TAG, "Skipping expired reminder: " + name);
+                            continue;
+                        }
+
+                        List<String> times = (List<String>) doc.get("times");
+                        if (times != null) {
+                            for (String timeStr : times) {
+                                scheduleAlarm(name, timeStr, doc.getId(), "REMINDER");
+                            }
+                        }
+                    }
+                });
+    }
+
+    private void fetchAndScheduleAppointments(String userId) {
+        db.collection("patients").document(userId).collection("appointments")
+                .get()
+                .addOnSuccessListener(snapshots -> {
+                    Log.d(TAG, "[Appointments] Found: " + snapshots.size());
+                    for (DocumentSnapshot doc : snapshots) {
+                        String status = doc.getString("status");
+                        if (status != null && status.trim().equalsIgnoreCase("Akan datang")) {
+                            Timestamp ts = doc.getTimestamp("timestamp");
+                            if (ts != null) {
+                                Date apptDate = ts.toDate();
+                                String dept = doc.getString("department");
+                                if (dept == null) dept = "Klinik";
+                                
+                                long apptMillis = apptDate.getTime();
+                                setApptAlarm(dept, apptMillis - (24 * 3600000L), "Esok", doc.getId() + "_24");
+                                setApptAlarm(dept, apptMillis - (12 * 3600000L), "12 Jam Lagi", doc.getId() + "_12");
+                                setApptAlarm(dept, apptMillis, "Sekarang", doc.getId() + "_now");
+                            }
+                        }
+                    }
+                });
+    }
+
     @SuppressLint("ScheduleExactAlarm")
-    private void scheduleMedicationAlarm(String name, String timeStr, String medId) {
-        try {
-            Calendar calendar = parseTime(timeStr);
-            if (calendar == null) {
-                Log.e(TAG, "Failed to parse medication time: " + timeStr);
-                return;
-            }
+    private void scheduleAlarm(String name, String timeStr, String id, String type) {
+        Calendar calendar = parseFlexibleTime(timeStr);
+        if (calendar == null) return;
 
-            Intent intent = new Intent(context, AlarmReceiver.class);
-            intent.putExtra("type", "MEDICATION");
-            intent.putExtra("title", "Peringatan Ubat (Hospital)");
-            intent.putExtra("message", "Sila ambil ubat preskripsi: " + name);
+        Intent intent = new Intent(context, AlarmReceiver.class);
+        intent.putExtra("type", type);
+        intent.putExtra("title", type.equals("MEDICATION") ? "Peringatan Ubat (Hospital)" : "Peringatan Peribadi");
+        intent.putExtra("message", "Masa untuk ambil: " + name);
 
-            int requestCode = (medId + timeStr + "MED").hashCode();
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                    context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        int requestCode = (id + timeStr + type).hashCode();
+        PendingIntent pi = PendingIntent.getBroadcast(context, requestCode, intent, 
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            if (alarmManager != null) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                Log.d(TAG, "Scheduled Medication: " + name + " at " + calendar.getTime());
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error setting medication alarm", e);
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (am != null) {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pi);
+            Log.d(TAG, "ALARM SET: [" + type + "] " + name + " at " + calendar.getTime());
         }
     }
 
-    //REMINDER
     @SuppressLint("ScheduleExactAlarm")
-    private void scheduleReminderAlarm(String name, String timeStr, String reminderId) {
-        try {
-            Calendar calendar = parseTime(timeStr);
-            if (calendar == null) return;
+    private void setApptAlarm(String dept, long trigger, String label, String key) {
+        if (trigger < System.currentTimeMillis()) return;
 
-            Intent intent = new Intent(context, AlarmReceiver.class);
-            intent.putExtra("type", "REMINDER");
-            intent.putExtra("title", "Peringatan Peribadi");
-            intent.putExtra("message", "Masa untuk ambil: " + name);
+        Intent intent = new Intent(context, AlarmReceiver.class);
+        intent.putExtra("type", "APPOINTMENT");
+        intent.putExtra("title", "Janji Temu: " + label);
+        intent.putExtra("message", "Anda ada janji temu di " + dept);
 
-            int requestCode = (reminderId + timeStr + "REM").hashCode();
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                    context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        int requestCode = key.hashCode();
+        PendingIntent pi = PendingIntent.getBroadcast(context, requestCode, intent, 
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            if (alarmManager != null) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                Log.d(TAG, "Scheduled Reminder: " + name + " at " + calendar.getTime());
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error setting reminder alarm", e);
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (am != null) {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pi);
+            Log.d(TAG, "APPT SET: " + dept + " (" + label + ") at " + new Date(trigger));
         }
     }
 
-    private Calendar parseTime(String timeStr) {
+    private Calendar parseFlexibleTime(String timeStr) {
         try {
-            String cleanTime = timeStr.trim().toUpperCase(Locale.US);
+            String clean = timeStr.trim().toUpperCase(Locale.US).replace(" ", "");
             int hour, minute = 0;
-            String amPm;
+            String amPm = "";
 
-            if (cleanTime.contains(":")) {
-                String[] parts = cleanTime.split("[: ]");
-                hour = Integer.parseInt(parts[0]);
-                minute = Integer.parseInt(parts[1]);
-                amPm = parts[parts.length - 1];
+            if (clean.endsWith("PM")) { amPm = "PM"; clean = clean.replace("PM", ""); }
+            else if (clean.endsWith("AM")) { amPm = "AM"; clean = clean.replace("AM", ""); }
+
+            if (clean.contains(":")) {
+                String[] p = clean.split(":");
+                hour = Integer.parseInt(p[0]);
+                minute = Integer.parseInt(p[1]);
             } else {
-                // Support "9 AM" format
-                String[] parts = cleanTime.split(" ");
-                hour = Integer.parseInt(parts[0]);
-                amPm = parts[1];
+                hour = Integer.parseInt(clean);
             }
 
             if (amPm.equals("PM") && hour < 12) hour += 12;
             if (amPm.equals("AM") && hour == 12) hour = 0;
 
-            Calendar calendar = Calendar.getInstance();
-            calendar.set(Calendar.HOUR_OF_DAY, hour);
-            calendar.set(Calendar.MINUTE, minute);
-            calendar.set(Calendar.SECOND, 0);
-            calendar.set(Calendar.MILLISECOND, 0);
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.HOUR_OF_DAY, hour);
+            cal.set(Calendar.MINUTE, minute);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
 
-            if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
-                calendar.add(Calendar.DAY_OF_YEAR, 1);
-            }
-            return calendar;
+            if (cal.getTimeInMillis() <= System.currentTimeMillis()) cal.add(Calendar.DAY_OF_YEAR, 1);
+            return cal;
         } catch (Exception e) {
-            Log.e(TAG, "Parse error for: " + timeStr);
+            Log.e(TAG, "Bad time format: " + timeStr);
             return null;
-        }
-    }
-
-    private void scheduleAppointmentAlarms(String userId) {
-        db.collection("patients").document(userId).collection("appointments")
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    Log.d(TAG, "Appointments found: " + queryDocumentSnapshots.size());
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        Appointment appt = doc.toObject(Appointment.class);
-                        // Case-insensitive status check
-                        if (appt.getStatus() != null && appt.getStatus().equalsIgnoreCase("Akan datang")) {
-                            if (appt.getTimestamp() != null) {
-                                long apptTime = appt.getTimestamp().toDate().getTime();
-                                scheduleAppointmentAlarm(appt.getDepartment(), apptTime - (24 * 60 * 60 * 1000), "Esok", doc.getId() + "24");
-                                scheduleAppointmentAlarm(appt.getDepartment(), apptTime - (12 * 60 * 60 * 1000), "12 Jam Lagi", doc.getId() + "12");
-                                scheduleAppointmentAlarm(appt.getDepartment(), apptTime, "Sekarang", doc.getId() + "now");
-                            }
-                        }
-                    }
-                });
-    }
-
-    //APPOINTMENT
-    @SuppressLint("ScheduleExactAlarm")
-    private void scheduleAppointmentAlarm(String department, long triggerTime, String label, String id) {
-        if (triggerTime < System.currentTimeMillis()) return;
-
-        Intent intent = new Intent(context, AlarmReceiver.class);
-        intent.putExtra("type", "APPOINTMENT");
-        intent.putExtra("title", "Peringatan Janji Temu");
-        intent.putExtra("message", label + ": Temujanji di " + department);
-
-        int requestCode = id.hashCode();
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (alarmManager != null) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
-            Log.d(TAG, "Scheduled Appointment (" + label + ") at " + new java.util.Date(triggerTime));
         }
     }
 }
