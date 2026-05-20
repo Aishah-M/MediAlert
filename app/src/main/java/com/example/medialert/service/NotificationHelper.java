@@ -47,7 +47,7 @@ public class NotificationHelper {
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.baseline_alarm_24) // Ensure this exists or use a default
+                .setSmallIcon(R.drawable.mal) // Ensure this exists or use a default
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)

@@ -17,6 +17,7 @@ import com.example.medialert.R
 import com.example.medialert.data.Reminder
 import com.example.medialert.theme.MediAlertTheme
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -24,8 +25,7 @@ fun ReminderScreen(
     onAddClick: () -> Unit,
     onEditClick: (Reminder) -> Unit,
     onDeleteClick: (Reminder) -> Unit,
-    reminders: List<Reminder>,
-
+    reminders: List<Reminder>
 ) {
     var reminderToDelete by remember { mutableStateOf<Reminder?>(null) }
 
@@ -115,8 +115,8 @@ fun ReminderScreen(
 fun ReminderItem(reminder: Reminder, onEdit: () -> Unit, onDelete: () -> Unit) {
     val isLowStock = reminder.remainingStock < 5
     val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    val startStr = reminder.startDate?.toDate()?.let { sdf.format(it) } ?: ""
-    val endStr = reminder.endDate?.toDate()?.let { sdf.format(it) } ?: ""
+    val startStr = reminder.startDate?.let { sdf.format(Date(it)) } ?: ""
+    val endStr = reminder.endDate?.let { sdf.format(Date(it)) } ?: ""
 
     Card(
         modifier = Modifier.fillMaxWidth(),

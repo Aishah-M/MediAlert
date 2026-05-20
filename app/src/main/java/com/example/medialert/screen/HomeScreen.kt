@@ -32,7 +32,7 @@ import com.example.medialert.data.Appointment
 import com.example.medialert.viewModel.AppointmentVM
 import com.example.medialert.viewModel.HomeVM
 import com.example.medialert.viewModel.ReminderVM
-import com.google.firebase.Timestamp
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,7 +41,8 @@ data class MedicationTask(
     val reminder: Reminder,
     val time: String,
     val isTaken: Boolean,
-    val dateStr: String
+    val dateStr: String,
+    val taskMinutes: Int // Total minutes from midnight
 )
 
 @Composable
@@ -55,8 +56,22 @@ fun HomeScreen(
 ) {
     val user by homeViewModel.userProfile
     val appointments by appointmentViewModel.appointments
-    val reminders by reminderViewModel.reminders
+    val reminders by reminderViewModel.reminders.collectAsState()
     val isLoading by homeViewModel.isLoading
+
+    // Current time in minutes from midnight to track task availability
+    var currentMinutes by remember {
+        mutableStateOf(Calendar.getInstance().let { it.get(Calendar.HOUR_OF_DAY) * 60 + it.get(Calendar.MINUTE) })
+    }
+
+    // Refresh current time every 15 seconds to ensure lists update promptly
+    LaunchedEffect(Unit) {
+        while (true) {
+            val cal = Calendar.getInstance()
+            currentMinutes = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+            delay(15000)
+        }
+    }
     
     // Create flattened list of tasks for today (12:00 AM - 11:59 PM)
     val todayTasks = remember(reminders) {
@@ -65,43 +80,50 @@ fun HomeScreen(
         
         val startOfToday = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }.time
+        }.timeInMillis
         
         val endOfToday = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
-        }.time
+        }.timeInMillis
         
         reminders.flatMap { reminder ->
-            val start = reminder.startDate?.toDate()
-            val end = reminder.endDate?.toDate()
+            val start = reminder.startDate ?: 0L
+            val end = reminder.endDate ?: Long.MAX_VALUE
             
             // Check if active today
-            val isAfterStart = start == null || !start.after(endOfToday)
-            val isBeforeEnd = end == null || !end.before(startOfToday) || reminder.untilFinish
+            val isAfterStart = start <= endOfToday
+            val isBeforeEnd = reminder.untilFinish || end >= startOfToday
             
             if (isAfterStart && isBeforeEnd) {
                 reminder.times.map { timeStr ->
                     val taskKey = "${dateStr}_$timeStr"
+                    
+                    // Parse time to minutes for comparison
+                    val parts = timeStr.split("[: ]".toRegex())
+                    var h = try { parts[0].toInt() } catch(e: Exception) { 0 }
+                    val m = try { parts[1].toInt() } catch(e: Exception) { 0 }
+                    val amPm = parts.last().uppercase()
+                    if (amPm == "PM" && h < 12) h += 12
+                    if (amPm == "AM" && h == 12) h = 0
+                    val minutes = h * 60 + m
+
                     MedicationTask(
                         reminder = reminder,
                         time = timeStr,
                         isTaken = reminder.takenLog.contains(taskKey),
-                        dateStr = dateStr
+                        dateStr = dateStr,
+                        taskMinutes = minutes
                     )
                 }
             } else {
                 emptyList()
             }
-        }.sortedBy { task ->
-            // Chronological sorting of 12-hour format strings (e.g., "08:00 AM")
-            val parts = task.time.split("[: ]".toRegex())
-            var h = try { parts[0].toInt() } catch(e: Exception) { 0 }
-            val m = try { parts[1].toInt() } catch(e: Exception) { 0 }
-            val amPm = parts.last()
-            if (amPm == "PM" && h < 12) h += 12
-            if (amPm == "AM" && h == 12) h = 0
-            h * 60 + m
-        }
+        }.sortedBy { it.taskMinutes }
+    }
+
+    // Filter tasks that should be visible based on current time (scheduled time <= current time)
+    val visibleTasks = remember(todayTasks, currentMinutes) {
+        todayTasks.filter { it.taskMinutes <= currentMinutes }
     }
 
     val nextAppointment = appointments.find { it.status == "Akan datang" }
@@ -112,14 +134,15 @@ fun HomeScreen(
         }
     } else {
         HomeContent(
-            user = user ?: UserProfile(fullName = "User"),
+            user = user ?: UserProfile(fullName = "Pengguna"),
             nextAppointment = nextAppointment,
-            tasks = todayTasks,
+            tasks = visibleTasks,
+            allTasksToday = todayTasks,
             onProfileClick = onProfileClick,
             onContactClick = onContactClick,
             onTaskToggle = { task ->
                 val updatedReminder = task.reminder.toggleTakenAt(task.dateStr, task.time)
-                reminderViewModel.saveReminder(updatedReminder) {}
+                reminderViewModel.saveReminder(updatedReminder)
             },
             modifier = modifier
         )
@@ -131,12 +154,14 @@ fun HomeContent(
     user: UserProfile,
     nextAppointment: Appointment?,
     tasks: List<MedicationTask>,
+    allTasksToday: List<MedicationTask>,
     onProfileClick: () -> Unit,
     onContactClick: () -> Unit,
     onTaskToggle: (MedicationTask) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val allTaken = tasks.isNotEmpty() && tasks.all { it.isTaken }
+    // Show Syabas only if ALL tasks scheduled for today are taken
+    val allTaken = allTasksToday.isNotEmpty() && allTasksToday.all { it.isTaken }
 
     Column(
         modifier = modifier
@@ -150,8 +175,7 @@ fun HomeContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Medication Tracking Section - Single list as requested
-            if (tasks.isNotEmpty()) {
+            if (allTasksToday.isNotEmpty()) {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f)
@@ -165,11 +189,27 @@ fun HomeContent(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    items(tasks) { task ->
-                        MedicationTaskCard(
-                            task = task,
-                            onTakenClick = { onTaskToggle(task) }
-                        )
+                    if (tasks.isEmpty() && !allTaken) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Jadual ubat seterusnya akan muncul mengikut masa yang ditetapkan.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    } else {
+                        items(tasks) { task ->
+                            MedicationTaskCard(
+                                task = task,
+                                onTakenClick = { onTaskToggle(task) }
+                            )
+                        }
                     }
                     
                     if (allTaken) {
@@ -269,15 +309,9 @@ fun MedicationTaskCard(task: MedicationTask, onTakenClick: () -> Unit) {
     val reminder = task.reminder
     
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .alpha(if (isTaken) 0.6f else 1f)
-            .clickable(enabled = !isTaken) { onTakenClick() }, // Whole card clickable, disabled when taken
+        modifier = Modifier.fillMaxWidth().alpha(if (isTaken) 0.6f else 1f),
         colors = CardDefaults.cardColors(
-            containerColor = if (isTaken) 
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) 
-            else 
-                MaterialTheme.colorScheme.surface
+            containerColor = if (isTaken) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(if (isTaken) 0.dp else 2.dp),
         shape = RoundedCornerShape(12.dp)
@@ -302,10 +336,10 @@ fun MedicationTaskCard(task: MedicationTask, onTakenClick: () -> Unit) {
                 )
             }
             
-            // Status Textbox
             Surface(
                 color = if (isTaken) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.clickable(enabled = !isTaken) { onTakenClick() }
             ) {
                 Text(
                     text = if (isTaken) "Telah diambil" else "Belum ambil",
@@ -333,14 +367,15 @@ fun LargeEmergencyButton(onClick: () -> Unit) {
 fun HomePreviewWithData() {
     val reminder = Reminder(medicationName = "Vitamin C", dosage = "1", unit = "biji", times = listOf("08:00 AM", "08:00 PM"))
     val tasks = listOf(
-        MedicationTask(reminder, "08:00 AM", true, "2023-10-10"),
-        MedicationTask(reminder, "08:00 PM", false, "2023-10-10")
+        MedicationTask(reminder, "08:00 AM", true, "2023-10-10", 480),
+        MedicationTask(reminder, "08:00 PM", false, "2023-10-10", 1200)
     )
     com.example.medialert.theme.MediAlertTheme {
         HomeContent(
             user = UserProfile(fullName = "Siti Aminah", icNumber = "650330105432"),
-            nextAppointment = Appointment(timestamp = Timestamp.now(), department = "Klinik Pakar", status = "Akan datang"),
+            nextAppointment = Appointment(timestamp = com.google.firebase.Timestamp.now(), department = "Klinik Pakar", status = "Akan datang"),
             tasks = tasks,
+            allTasksToday = tasks,
             onProfileClick = {}, onContactClick = {}, onTaskToggle = {}
         )
     }

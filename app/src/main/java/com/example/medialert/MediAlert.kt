@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -21,14 +22,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.medialert.screen.*
-import com.example.medialert.theme.MediAlertTheme
 import com.example.medialert.data.Reminder
 import com.example.medialert.viewModel.ReminderVM
 import com.google.firebase.auth.FirebaseAuth
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-enum class MediAlertScreen(@StringRes val title: Int) {
+enum class MediAlertScreen(@get:StringRes val title: Int) {
     Login(R.string.login),
     Register(R.string.signup),
     Home(R.string.home),
@@ -199,7 +198,7 @@ fun MediAlertAppContent(
                 
                 composable(route = MediAlertScreen.Reminder.name) {
                     val reminderVM: ReminderVM = viewModel()
-                    val reminders by reminderVM.reminders
+                    val reminders by reminderVM.reminders.collectAsState()
                     
                     ReminderScreen(
                         reminders = reminders,
@@ -211,7 +210,7 @@ fun MediAlertAppContent(
                             editingReminder = reminder
                             navController.navigate(MediAlertScreen.EditReminder.name)
                         },
-                        onDeleteClick = { reminder -> reminderVM.deleteReminder(reminder.id) }
+                        onDeleteClick = { reminder -> reminderVM.deleteReminder(reminder) }
                     )
                 }
                 

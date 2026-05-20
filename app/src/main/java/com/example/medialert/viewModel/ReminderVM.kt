@@ -1,77 +1,68 @@
 package com.example.medialert.viewModel
 
-import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.work.*
+import com.example.medialert.data.AppDatabase
 import com.example.medialert.data.Reminder
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.example.medialert.service.ReminderScheduler
+import com.example.medialert.worker.MedicationWorker
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
-class ReminderVM : ViewModel() {
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+class ReminderVM(application: Application) : AndroidViewModel(application) {
+    private val reminderDao = AppDatabase.getDatabase(application).reminderDao()
+    private val workManager = WorkManager.getInstance(application)
+    private val reminderScheduler = ReminderScheduler(application)
 
-    private val _reminders = mutableStateOf<List<Reminder>>(emptyList())
-    val reminders: State<List<Reminder>> = _reminders
+    val reminders: StateFlow<List<Reminder>> = reminderDao.getAllReminders()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _isLoading = mutableStateOf(false)
-    val isLoading: State<Boolean> = _isLoading
-
-    init {
-        fetchReminders()
+    fun saveReminder(reminder: Reminder, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            reminderDao.insertReminder(reminder)
+            // Use AlarmManager for exact timing
+            reminderScheduler.scheduleAlarms(reminder)
+            // Keep WorkManager for periodic background checks (like inventory)
+            scheduleMedicationWork(reminder)
+            onSuccess()
+        }
     }
 
-    fun fetchReminders() {
-        val userId = auth.currentUser?.uid ?: return
-        _isLoading.value = true
-
-        db.collection("patients")
-            .document(userId)
-            .collection("reminders")
-            .orderBy("medicationName", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, e ->
-                _isLoading.value = false
-                if (e != null) {
-                    Log.e("ReminderVM", "Firestore Error: ${e.message}")
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val list = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(Reminder::class.java)?.copy(id = doc.id)
-                    }
-                    _reminders.value = list
-                }
-            }
+    fun deleteReminder(reminder: Reminder) {
+        viewModelScope.launch {
+            reminderDao.deleteReminder(reminder)
+            reminderScheduler.cancelAlarms(reminder)
+            cancelMedicationWork(reminder.id)
+        }
     }
 
-    fun saveReminder(reminder: Reminder, onSuccess: () -> Unit) {
-        val userId = auth.currentUser?.uid ?: return
-        _isLoading.value = true
+    private fun scheduleMedicationWork(reminder: Reminder) {
+        cancelMedicationWork(reminder.id)
+        
+        if (reminder.remainingStock <= 0) return
 
-        db.collection("patients")
-            .document(userId)
-            .collection("reminders")
-            .document(reminder.id)
-            .set(reminder)
-            .addOnSuccessListener {
-                _isLoading.value = false
-                onSuccess()
-            }
-            .addOnFailureListener { e ->
-                _isLoading.value = false
-                Log.e("ReminderVM", "Save Error: ${e.message}")
-            }
+        val data = Data.Builder()
+            .putString("reminderId", reminder.id)
+            .build()
+
+        val workRequest = PeriodicWorkRequestBuilder<MedicationWorker>(15, TimeUnit.MINUTES)
+            .setInputData(data)
+            .addTag(reminder.id)
+            .build()
+
+        workManager.enqueueUniquePeriodicWork(
+            reminder.id,
+            ExistingPeriodicWorkPolicy.UPDATE,
+            workRequest
+        )
     }
 
-    fun deleteReminder(reminderId: String) {
-        val userId = auth.currentUser?.uid ?: return
-        db.collection("patients")
-            .document(userId)
-            .collection("reminders")
-            .document(reminderId)
-            .delete()
+    private fun cancelMedicationWork(reminderId: String) {
+        workManager.cancelUniqueWork(reminderId)
     }
 }

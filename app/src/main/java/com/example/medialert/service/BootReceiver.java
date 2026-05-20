@@ -13,8 +13,13 @@ public class BootReceiver extends BroadcastReceiver {
             
             Log.d("BootReceiver", "Phone rebooted, rescheduling alarms...");
             
-            AlarmScheduler scheduler = new AlarmScheduler(context);
-            scheduler.scheduleAllAlarms();
+            // Reschedule Firestore alarms
+            AlarmScheduler alarmScheduler = new AlarmScheduler(context);
+            alarmScheduler.scheduleAllAlarms();
+
+            // Reschedule local reminders
+            ReminderScheduler reminderScheduler = new ReminderScheduler(context);
+            reminderScheduler.rescheduleAll();
         }
     }
 }

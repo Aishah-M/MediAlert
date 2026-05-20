@@ -1,6 +1,5 @@
 package com.example.medialert.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,7 +18,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.medialert.data.Reminder
 import com.example.medialert.theme.MediAlertTheme
-import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -42,7 +40,7 @@ fun ReminderEditScreen(
     var reminderTimes by remember { mutableStateOf(existingReminder?.times ?: emptyList()) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    // Scheduling states
+    // Scheduling states - Using Long? for millisecond timestamps
     var startDate by remember { mutableStateOf(existingReminder?.startDate) }
     var endDate by remember { mutableStateOf(existingReminder?.endDate) }
     var untilFinish by remember { mutableStateOf(existingReminder?.untilFinish ?: false) }
@@ -105,7 +103,7 @@ fun ReminderEditScreen(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     )
                     ExposedDropdownMenu(
                         expanded = unitExpanded,
@@ -159,7 +157,7 @@ fun ReminderEditScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
-                value = startDate?.toDate()?.let { sdf.format(it) } ?: "",
+                value = startDate?.let { sdf.format(Date(it)) } ?: "",
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Tarikh Mula") },
@@ -183,7 +181,7 @@ fun ReminderEditScreen(
 
             if (!untilFinish) {
                 OutlinedTextField(
-                    value = endDate?.toDate()?.let { sdf.format(it) } ?: "",
+                    value = endDate?.let { sdf.format(Date(it)) } ?: "",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Tarikh Tamat") },
@@ -284,12 +282,12 @@ fun ReminderEditScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        val date = Date(it)
                         val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                        cal.time = date
+                        cal.timeInMillis = it
                         val localCal = Calendar.getInstance()
                         localCal.set(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
-                        startDate = Timestamp(localCal.time)
+                        localCal.set(Calendar.MILLISECOND, 0)
+                        startDate = localCal.timeInMillis
                     }
                     showStartDatePicker = false
                 }) { Text("OK") }
@@ -309,12 +307,12 @@ fun ReminderEditScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        val date = Date(it)
                         val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                        cal.time = date
+                        cal.timeInMillis = it
                         val localCal = Calendar.getInstance()
                         localCal.set(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), 23, 59, 59)
-                        endDate = Timestamp(localCal.time)
+                        localCal.set(Calendar.MILLISECOND, 999)
+                        endDate = localCal.timeInMillis
                     }
                     showEndDatePicker = false
                 }) { Text("OK") }

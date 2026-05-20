@@ -2,8 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    //id("com.android.application")
     id("com.google.gms.google-services")
+    alias(libs.plugins.google.ksp)
 }
 
 android {
@@ -41,17 +41,12 @@ android {
     }
     packaging {
         resources {
-            // Option 1: Pick the first one it finds
             pickFirsts.add("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
-
-            // Option 2: Alternatively, exclude it
-            // excludes.add("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
         }
     }
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -66,6 +61,18 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.0")
     implementation(libs.identity.doctypes.jvm)
     implementation(libs.androidx.animation.core.lint)
+
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
+
+    // Gson
+    implementation(libs.google.gson)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -73,8 +80,9 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
     implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth")     // For Login
-    implementation("com.google.firebase:firebase-firestore") // For Appointments/Meds
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 }

@@ -1,41 +1,34 @@
 package com.example.medialert.data
 
-import com.google.firebase.Timestamp
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import java.util.UUID
 
+@Entity(tableName = "reminders")
 data class Reminder(
+    @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
-    
-    // These 2 fields only used for patient-added ubat/vitamin
     val medicationName: String = "", 
-    
-    // Fields for both types
-    val dosage: String = "",
+    val dosage: String = "", // Assuming this is a number as string like "1"
     val unit: String = "",
     val totalStock: Int = 0,
     val remainingStock: Int = 0,
     val times: List<String> = emptyList(),
     val isTaken: Boolean = false,
     val takenLog: List<String> = emptyList(), // Stores strings like "yyyy-MM-dd_HH:mm AM"
-    
-    // Scheduling fields
-    val startDate: Timestamp? = null,
-    val endDate: Timestamp? = null,
+    val startDate: Long? = null, // Store as milliseconds
+    val endDate: Long? = null,   // Store as milliseconds
     val untilFinish: Boolean = false
 ) {
-    fun takeMedication(): Reminder {
-        return if (!isTaken && remainingStock > 0) {
-            this.copy(remainingStock = (remainingStock - 1).coerceAtLeast(0), isTaken = true)
-        } else {
-            this.copy(isTaken = !isTaken)
-        }
-    }
-
     fun toggleTakenAt(dateStr: String, timeStr: String): Reminder {
         val entry = "${dateStr}_$timeStr"
         val alreadyTaken = takenLog.contains(entry)
         val newLog = if (alreadyTaken) takenLog - entry else takenLog + entry
-        val stockAdj = if (alreadyTaken) 1 else -1
+        
+        // Stock reduction logic: Reduce by dosage if marking as taken
+        val dosageInt = dosage.toIntOrNull() ?: 0
+        val stockAdj = if (alreadyTaken) dosageInt else -dosageInt
+
         return this.copy(
             takenLog = newLog,
             remainingStock = (remainingStock + stockAdj).coerceAtLeast(0)
