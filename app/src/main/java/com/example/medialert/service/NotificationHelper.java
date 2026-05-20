@@ -28,6 +28,7 @@ public class NotificationHelper {
                     NotificationManager.IMPORTANCE_HIGH
             );
             channel.setDescription("Notifications for Medication and Appointments");
+            channel.enableVibration(true);
             NotificationManager manager = context.getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
@@ -39,25 +40,28 @@ public class NotificationHelper {
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         
+        // Use unique request code for PendingIntent to avoid overwriting extras
+        int requestCode = (title + message).hashCode();
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, 
-                0, 
+                requestCode, 
                 intent, 
                 PendingIntent.FLAG_IMMUTABLE
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.mal) // Ensure this exists or use a default
+                .setSmallIcon(R.drawable.baseline_alarm_24)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
 
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) {
-            // Using hashcode of title as ID to allow multiple distinct notifications
-            manager.notify((title + type).hashCode(), builder.build());
+            // Using hashcode of title+message as ID to allow multiple distinct notifications
+            manager.notify((title + message + type).hashCode(), builder.build());
         }
     }
 }

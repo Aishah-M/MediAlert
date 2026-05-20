@@ -1,17 +1,21 @@
 package com.example.medialert.viewModel
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import com.example.medialert.data.Medication
+import com.example.medialert.service.AlarmScheduler
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 
-class MedicationVM : ViewModel() {
+class MedicationVM(application: Application) : AndroidViewModel(application) {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val alarmScheduler = AlarmScheduler(application)
 
     private val _medications = mutableStateOf<List<Medication>>(emptyList())
     val medications: State<List<Medication>> = _medications
@@ -21,6 +25,8 @@ class MedicationVM : ViewModel() {
 
     private val _error = mutableStateOf<String?>(null)
     val error: State<String?> = _error
+
+    private var medicationListener: ListenerRegistration? = null
 
     init {
         fetchMedicines()
@@ -33,8 +39,11 @@ class MedicationVM : ViewModel() {
         _isLoading.value = true
         _error.value = null
 
-        // Fetching from patients/{userId}/medications sub-collection
-        db.collection("patients")
+        // Remove old listener if exists
+        medicationListener?.remove()
+
+        // Fetching from patients/{userId}/medications sub-collection with real-time updates
+        medicationListener = db.collection("patients")
             .document(userId)
             .collection("medications")
             .orderBy("name", Query.Direction.ASCENDING)
@@ -51,7 +60,16 @@ class MedicationVM : ViewModel() {
                         doc.toObject(Medication::class.java)?.copy(id = doc.id)
                     }
                     _medications.value = list
+                    
+                    // Trigger alarm scheduling whenever data changes to ensure notifications are set
+                    Log.d("MedicationVM", "Medication list updated, rescheduling alarms")
+                    alarmScheduler.scheduleAllAlarms()
                 }
             }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        medicationListener?.remove()
     }
 }

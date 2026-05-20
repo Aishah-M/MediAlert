@@ -12,9 +12,23 @@ public class AlarmReceiver extends BroadcastReceiver {
         String title = intent.getStringExtra("title");
         String message = intent.getStringExtra("message");
 
+        if (title == null) title = "Peringatan MediAlert";
+        if (message == null) message = "Sila ambil ubat anda.";
+
         Log.d("AlarmReceiver", "Received alarm: " + type + " - " + title);
 
         NotificationHelper notificationHelper = new NotificationHelper(context);
         notificationHelper.showNotification(title, message, type);
+
+        // Reschedule alarms to set the next occurrence (e.g., for the next day)
+        try {
+            AlarmScheduler alarmScheduler = new AlarmScheduler(context);
+            alarmScheduler.scheduleAllAlarms();
+            
+            ReminderScheduler reminderScheduler = new ReminderScheduler(context);
+            reminderScheduler.rescheduleAll();
+        } catch (Exception e) {
+            Log.e("AlarmReceiver", "Reschedule failed: " + e.getMessage());
+        }
     }
 }
