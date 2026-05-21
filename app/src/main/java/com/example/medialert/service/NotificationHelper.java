@@ -39,12 +39,9 @@ public class NotificationHelper {
     }
 
     public void showNotification(String title, String message, String type) {
-        // Broadly identify medication related notifications to make them persistent
-        boolean isMedication = type != null && (
-                type.equalsIgnoreCase("MEDICATION") || 
-                type.equalsIgnoreCase("REMINDER") || 
-                type.equalsIgnoreCase("PERSONAL_REMINDER")
-        );
+        // Apply strict behavior (un-swipable + "OK" button) ONLY to "MEDICATION".
+        // Reminders and other types will be normal swipable notifications.
+        boolean isStrictMedication = "MEDICATION".equalsIgnoreCase(type);
 
         int notificationId = (title + message + (type != null ? type : "")).hashCode();
         
@@ -66,12 +63,12 @@ public class NotificationHelper {
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
-        if (isMedication) {
-            // These make it "Ongoing" and "No Clear"
+        if (isStrictMedication) {
+            // Medication notifications are un-swipable
             builder.setOngoing(true);
             builder.setAutoCancel(false);
             
-            // OK button is the only way to dismiss
+            // "OK" button is added ONLY for Medications
             Intent dismissIntent = new Intent(context, DismissReceiver.class);
             dismissIntent.putExtra("notificationId", notificationId);
             PendingIntent dismissPI = PendingIntent.getBroadcast(
@@ -82,19 +79,21 @@ public class NotificationHelper {
             );
             builder.addAction(0, "OK", dismissPI);
         } else {
+            // Other notifications (like REMINDER) are swipable and have no OK button
             builder.setAutoCancel(true);
+            builder.setOngoing(false);
         }
 
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) {
             Notification n = builder.build();
-            if (isMedication) {
-                // Low-level flags for absolute un-swipability
+            if (isStrictMedication) {
+                // Ensure it can't be cleared by swiping or "Clear All"
                 n.flags |= Notification.FLAG_ONGOING_EVENT;
                 n.flags |= Notification.FLAG_NO_CLEAR;
             }
             manager.notify(notificationId, n);
-            Log.d("NotificationHelper", "Posted notification ID: " + notificationId + " isMed: " + isMedication);
+            Log.d("NotificationHelper", "Posted notification: " + title + " (Strict: " + isStrictMedication + ")");
         }
     }
 }
