@@ -158,7 +158,23 @@ fun MedicationInfoCard(medication: Medication) {
                 if (medication.frequency.isNotEmpty()) MedicationDetailRow(label = "Kekerapan", value = medication.frequency)
                 
                 if (medication.times.isNotEmpty()) {
-                    MedicationDetailRow(label = "Waktu", value = medication.times.joinToString(", "))
+                    val formattedTimes = medication.times.map { time ->
+                        try {
+                            if (time.contains("AM", ignoreCase = true) || time.contains("PM", ignoreCase = true)) {
+                                time.trim().uppercase(Locale.US)
+                            } else {
+                                // Convert 24h (e.g. 13:00) to 12h (e.g. 01:00 PM)
+                                val sdf24 = SimpleDateFormat("H:mm", Locale.US)
+                                val sdf12 = SimpleDateFormat("hh:mm a", Locale.US)
+                                sdf24.parse(time.trim())?.let { 
+                                    sdf12.format(it).uppercase(Locale.US) 
+                                } ?: time.uppercase(Locale.US)
+                            }
+                        } catch (e: Exception) {
+                            time.uppercase(Locale.US)
+                        }
+                    }
+                    MedicationDetailRow(label = "Waktu", value = formattedTimes.joinToString(", "))
                 }
 
                 if (medication.duration.isNotEmpty()) MedicationDetailRow(label = "Tempoh", value = medication.duration)
