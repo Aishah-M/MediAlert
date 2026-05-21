@@ -1,33 +1,42 @@
 package com.example.medialert.data
 
-import androidx.annotation.DrawableRes
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.Exclude
+import com.google.firebase.firestore.PropertyName
 
 data class Medication(
-    val id: String = "", // The ID of this prescription record
+    @get:Exclude @set:Exclude
+    var id: String = "",
 
-    // Link to master data (optional but good for tracking)
-    val medicineId: String = "", 
+    val name: String = "",
+    val unit: String = "",
 
-    // Snapshot of data (Safe & Fast)
-    val name: String = "", 
-    val unit: String = "", 
-
-    @DrawableRes val imageRes: Int? = null,
-    val imageUrl: String = "",
+    @get:PropertyName("imageURL")
+    @set:PropertyName("imageURL")
+    var imageURL: String = "",
 
     val dosage: String = "",
     val frequency: String = "",
     val duration: String = "",
-    
-    // New scheduling fields
-    val times: List<String> = emptyList(), // e.g., ["09:00 AM", "01:00 PM"]
+
+    val times: List<String> = emptyList(),
     val startDate: Timestamp? = null,
     val endDate: Timestamp? = null,
     val untilFinish: Boolean = false,
 
     val purpose: String = "",
-    val instruction: String = "",
+
+    @get:PropertyName("instructions")
+    @set:PropertyName("instructions")
+    var instructions: String = "",
+
     val prescriptionDate: Timestamp? = null,
     val doctorName: String = ""
-)
+) {
+    // UI Compatibility properties
+    @get:Exclude
+    val imageUrl: String get() = imageURL
+    
+    @get:Exclude
+    val instruction: String get() = instructions
+}
