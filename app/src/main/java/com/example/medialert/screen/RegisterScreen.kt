@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -34,6 +35,7 @@ fun RegisterScreen(
 ) {
     var fullName by remember { mutableStateOf("") }
     var icNumber by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -114,6 +116,24 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
+                value = email,
+                onValueChange = { 
+                    email = it 
+                    if (errorMessage != null) viewModel.clearError()
+                },
+                label = { Text("E-mel") },
+                placeholder = { Text("Contoh: user@example.com") },
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                isError = errorMessage != null
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
                 value = password,
                 onValueChange = { 
                     password = it 
@@ -126,7 +146,15 @@ fun RegisterScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                isError = errorMessage != null
+                isError = errorMessage != null,
+                        trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            painter = painterResource(id = if (passwordVisible) R.drawable.baseline_visibility_24 else R.drawable.baseline_visibility_off_24), // Ideally use visibility icons
+                            contentDescription = null
+                        )
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -144,7 +172,15 @@ fun RegisterScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                isError = errorMessage != null
+                isError = errorMessage != null,
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            painter = painterResource(id = if (passwordVisible) R.drawable.baseline_visibility_24 else R.drawable.baseline_visibility_off_24), // Ideally use visibility icons
+                            contentDescription = null
+                        )
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -154,6 +190,7 @@ fun RegisterScreen(
                     viewModel.registerPatient(
                         icNumber = icNumber,
                         fullName = fullName,
+                        email = email,
                         password = password,
                         confirmPassword = confirmPassword,
                         onSuccess = onRegisterSuccess

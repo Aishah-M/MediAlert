@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import com.example.medialert.data.UserProfile
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 
 class ProfileVM : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
@@ -21,6 +22,9 @@ class ProfileVM : ViewModel() {
     private val _error = mutableStateOf<String?>(null)
     val error: State<String?> = _error
 
+    private var profileListener: ListenerRegistration? = null
+    private var patientDocId: String? = null // Store the actual Firestore Doc ID (e.g., the IC)
+
     init {
         fetchUserProfile()
     }
@@ -29,30 +33,35 @@ class ProfileVM : ViewModel() {
         val userId = auth.currentUser?.uid ?: return
         _isLoading.value = true
 
-        db.collection("patients")
-            .document(userId)
-            .addSnapshotListener { snapshot, e ->
+        profileListener?.remove()
+
+        // Search for the document where the "userId" field matches the Auth UID
+        profileListener = db.collection("patients")
+            .whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshots, e ->
                 _isLoading.value = false
                 if (e != null) {
-                    Log.e("ProfileVM", "Firestore Error: ${e.message}", e)
+                    Log.e("ProfileVM", "Firestore Error: ${e.message}")
                     _error.value = e.localizedMessage
                     return@addSnapshotListener
                 }
 
-                if (snapshot != null && snapshot.exists()) {
-                    _userProfile.value = snapshot.toObject(UserProfile::class.java)
+                if (snapshots != null && !snapshots.isEmpty) {
+                    val doc = snapshots.documents[0]
+                    patientDocId = doc.id // This is the Document ID (could be your IC)
+                    _userProfile.value = doc.toObject(UserProfile::class.java)
+                } else {
+                    _error.value = "Profil tidak dijumpai"
                 }
             }
     }
 
     fun updateUserProfile(updatedProfile: UserProfile, onSuccess: () -> Unit) {
-        val userId = auth.currentUser?.uid ?: return
+        val docId = patientDocId ?: return
         _isLoading.value = true
 
-        // Ensure fullName and icNumber are not changed if you want to be safe
-        // though the UI already handles readOnly for them.
         db.collection("patients")
-            .document(userId)
+            .document(docId)
             .set(updatedProfile)
             .addOnSuccessListener {
                 _isLoading.value = false
@@ -61,7 +70,11 @@ class ProfileVM : ViewModel() {
             .addOnFailureListener { e ->
                 _isLoading.value = false
                 _error.value = e.localizedMessage
-                Log.e("ProfileVM", "Update Error: ${e.message}", e)
             }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        profileListener?.remove()
     }
 }

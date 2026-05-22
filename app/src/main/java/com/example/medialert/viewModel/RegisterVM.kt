@@ -19,17 +19,23 @@ class RegisterVM : ViewModel() {
     fun registerPatient(
         icNumber: String,
         fullName: String,
+        email: String,
         password: String,
         confirmPassword: String,
         onSuccess: () -> Unit
     ) {
-        if (icNumber.isBlank() || fullName.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+        if (icNumber.isBlank() || fullName.isBlank() || email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
             _errorMessage.value = "Sila isi semua maklumat"
             return
         }
 
         if (icNumber.length != 12) {
             _errorMessage.value = "No. IC mestilah 12 digit"
+            return
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            _errorMessage.value = "Format e-mel tidak sah"
             return
         }
 
@@ -46,36 +52,54 @@ class RegisterVM : ViewModel() {
         _isLoading.value = true
         _errorMessage.value = null
 
-        val fakeEmail = "$icNumber@medialert.com"
-
-        auth.createUserWithEmailAndPassword(fakeEmail, password)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val userId = auth.currentUser?.uid
-                    if (userId != null) {
-                        val userMap = hashMapOf(
-                            "icNumber" to icNumber,
-                            "fullName" to fullName,
-                            "userId" to userId
-                        )
-                        db.collection("patients").document(userId)
-                            .set(userMap)
-                            .addOnSuccessListener {
-                                _isLoading.value = false
-                                onSuccess()
-                            }
-                            .addOnFailureListener { e ->
-                                _isLoading.value = false
-                                _errorMessage.value = e.localizedMessage ?: "Gagal menyimpan data pengguna"
-                            }
-                    } else {
-                        _isLoading.value = false
-                        onSuccess()
-                    }
-                } else {
+        // 1. Look up the patients collection in Firestore to see if a document with that IC already exists.
+        db.collection("patients")
+            .whereEqualTo("icNumber", icNumber)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                if (querySnapshot.isEmpty) {
+                    // 2. If it does not exist, show an error: 'IC not found. Please register at the clinic first.'
                     _isLoading.value = false
-                    _errorMessage.value = task.exception?.localizedMessage ?: "Pendaftaran gagal"
+                    _errorMessage.value = "No. IC tidak dijumpai. Sila daftar di klinik terlebih dahulu."
+                } else {
+                    val patientDoc = querySnapshot.documents[0]
+                    val docId = patientDoc.id
+
+                    // 3. If it does exist, proceed to create a new user in Firebase Authentication
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { authTask ->
+                            if (authTask.isSuccessful) {
+                                val firebaseUid = auth.currentUser?.uid
+                                if (firebaseUid != null) {
+                                    // 4. After successful authentication creation, update the existing Firestore document
+                                    val updates = hashMapOf<String, Any>(
+                                        "userId" to firebaseUid,
+                                        "email" to email,
+                                        "fullName" to fullName
+                                    )
+                                    
+                                    db.collection("patients").document(docId)
+                                        .update(updates)
+                                        .addOnSuccessListener {
+                                            _isLoading.value = false
+                                            onSuccess()
+                                        }
+                                        .addOnFailureListener { e ->
+                                            _isLoading.value = false
+                                            _errorMessage.value = "Gagal mengemaskini profil: ${e.localizedMessage}"
+                                        }
+                                }
+                            } else {
+                                _isLoading.value = false
+                                // Firebase will automatically handle "Email already in use" errors here
+                                _errorMessage.value = authTask.exception?.localizedMessage ?: "Pendaftaran gagal"
+                            }
+                        }
                 }
+            }
+            .addOnFailureListener { e ->
+                _isLoading.value = false
+                _errorMessage.value = "Ralat carian IC: ${e.localizedMessage}"
             }
     }
 

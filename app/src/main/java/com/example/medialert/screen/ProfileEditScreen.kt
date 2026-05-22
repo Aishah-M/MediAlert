@@ -82,7 +82,6 @@ fun ProfileEditContent(
 ) {
     // State for each input field initialized with user data
     var phoneNumber by remember { mutableStateOf(user.phoneNumber) }
-    var email by remember { mutableStateOf(user.email) }
     
     var bloodType by remember { mutableStateOf(user.bloodType) }
     
@@ -112,7 +111,7 @@ fun ProfileEditContent(
     ) {
         EditSectionTitle(title = "Maklumat Peribadi")
 
-        // Locked Fields with a slightly darker background for better visibility
+        // Locked Fields (Calculated from IC or account settings)
         ReadOnlyLockedField(
             value = user.fullName,
             label = "Nama Penuh",
@@ -122,6 +121,13 @@ fun ProfileEditContent(
         ReadOnlyLockedField(
             value = user.icNumber,
             label = "No. Kad Pengenalan",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Email is locked to match the registered account
+        ReadOnlyLockedField(
+            value = user.email,
+            label = "E-mel Akaun",
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -150,15 +156,8 @@ fun ProfileEditContent(
             onValueChange = { phoneNumber = it },
             label = { Text("No. Telefon") },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
         )
 
         OutlinedTextField(
@@ -205,14 +204,15 @@ fun ProfileEditContent(
             value = emergencyPhone,
             onValueChange = { emergencyPhone = it },
             label = { Text("No. Telefon Kecemasan") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
         )
 
         Button(
             onClick = {
                 val updatedProfile = user.copy(
                     phoneNumber = phoneNumber,
-                    email = email,
+                    // email is kept as is
                     birthDate = birthDate,
                     age = age,
                     gender = gender,

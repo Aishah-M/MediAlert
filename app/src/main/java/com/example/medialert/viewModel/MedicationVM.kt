@@ -34,37 +34,51 @@ class MedicationVM(application: Application) : AndroidViewModel(application) {
 
     fun fetchMedicines() {
         val userId = auth.currentUser?.uid ?: return
-        Log.d("MedicationVM", "Fetching medications for patient: $userId")
-
         _isLoading.value = true
         _error.value = null
 
-        // Remove old listener if exists
         medicationListener?.remove()
 
-        // Fetching from patients/{userId}/medications sub-collection with real-time updates
-        medicationListener = db.collection("patients")
-            .document(userId)
-            .collection("medications")
-            .orderBy("name", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, e ->
-                _isLoading.value = false
-                if (e != null) {
-                    Log.e("MedicationVM", "Firestore Error: ${e.message}", e)
-                    _error.value = e.localizedMessage
-                    return@addSnapshotListener
+        // 1. First find the patient document that has this userId field
+        db.collection("patients")
+            .whereEqualTo("userId", userId)
+            .get()
+            .addOnSuccessListener { snapshots ->
+                if (snapshots.isEmpty) {
+                    _isLoading.value = false
+                    Log.e("MedicationVM", "No profile found for UID: $userId")
+                    return@addOnSuccessListener
                 }
 
-                if (snapshot != null) {
-                    val list = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(Medication::class.java)?.copy(id = doc.id)
+                // 2. Access the medications sub-collection from that document
+                val patientDocRef = snapshots.documents[0].reference
+                
+                medicationListener = patientDocRef.collection("medications")
+                    .orderBy("name", Query.Direction.ASCENDING)
+                    .addSnapshotListener { snapshot, e ->
+                        _isLoading.value = false
+                        if (e != null) {
+                            Log.e("MedicationVM", "Firestore Error: ${e.message}")
+                            _error.value = e.localizedMessage
+                            return@addSnapshotListener
+                        }
+
+                        if (snapshot != null) {
+                            val list = snapshot.documents.mapNotNull { doc ->
+                                try {
+                                    doc.toObject(Medication::class.java)?.apply { id = doc.id }
+                                } catch (ex: Exception) {
+                                    null
+                                }
+                            }
+                            _medications.value = list
+                            alarmScheduler.scheduleAllAlarms()
+                        }
                     }
-                    _medications.value = list
-                    
-                    // Trigger alarm scheduling whenever data changes to ensure notifications are set
-                    Log.d("MedicationVM", "Medication list updated, rescheduling alarms")
-                    alarmScheduler.scheduleAllAlarms()
-                }
+            }
+            .addOnFailureListener { e ->
+                _isLoading.value = false
+                _error.value = e.localizedMessage
             }
     }
 

@@ -4,7 +4,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.example.medialert.data.UserProfile
-import com.example.medialert.data.Reminder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -26,12 +25,14 @@ class HomeVM : ViewModel() {
         val userId = auth.currentUser?.uid ?: return
         _isLoading.value = true
 
+        // Find the patient document where the "userId" field matches the Auth UID
         db.collection("patients")
-            .document(userId)
-            .addSnapshotListener { snapshot, e ->
+            .whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshots, e ->
                 _isLoading.value = false
-                if (snapshot != null && snapshot.exists()) {
-                    _userProfile.value = snapshot.toObject(UserProfile::class.java)
+                if (snapshots != null && !snapshots.isEmpty) {
+                    val profile = snapshots.documents[0].toObject(UserProfile::class.java)
+                    _userProfile.value = profile
                 }
             }
     }
