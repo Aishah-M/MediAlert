@@ -291,12 +291,12 @@ fun AppointmentCountdownCard(appointment: Appointment?) {
     ) {
         Row(modifier = Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Temujanji Seterusnya", style = MaterialTheme.typography.titleMedium)
+                Text("Janji Temu Seterusnya", style = MaterialTheme.typography.titleMedium)
                 Text(appointment.department, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Text("$dateStr • $timeStr", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(daysRemaining.toString(), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                Text(daysRemaining.toString(), fontSize = 40.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                 Text("HARI LAGI", fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
