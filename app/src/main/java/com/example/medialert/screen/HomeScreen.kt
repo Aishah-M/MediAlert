@@ -275,7 +275,8 @@ fun AppointmentCountdownCard(appointment: Appointment?) {
     if (appointment == null) return
     val daysRemaining = remember(appointment.timestamp) {
         appointment.timestamp?.toDate()?.let { apptDate ->
-            val today = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.time
+            val today = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0);
+                set(Calendar.MILLISECOND, 0) }.time
             val diff = apptDate.time - today.time
             val days = diff / (1000 * 60 * 60 * 24)
             if (days > 0) days else 0L

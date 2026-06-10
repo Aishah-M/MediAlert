@@ -46,9 +46,14 @@ fun ContactScreen(
 
     // Sample Data List
     val contacts = listOf(
-        HospitalContact("Jabatan Pembedahan Am", "Hospital Tanjung Karang", "017-3193544"),
-        HospitalContact("Jabatan Ortopedik", "Hospital Tanjung Karang", "017-3193544"),
-        HospitalContact("Kecemasan", "Hospital Tanjung Karang", "999")
+        HospitalContact("Kecemasan", "Hospital Tanjung Karang", "017-319 3544"),
+        HospitalContact("Klinik Pakar Pembedahan Am", "Hospital Tanjung Karang", "03-3289 7100"),
+        HospitalContact("Klinik Pakar Ortopedik", "Hospital Tanjung Karang", "03-3289 7100"),
+        HospitalContact("Klinik Pakar Perubatan Am", "Hospital Tanjung Karang", "03-3289 7105"),
+        HospitalContact("Klinik Pakar Pediatrik", "Hospital Tanjung Karang", "03-3289 7120"),
+        HospitalContact("Klinik Pakar Obstetrik & Ginekologi (O&G)", "Hospital Tanjung Karang", "03-3289 7140"),
+        HospitalContact("Talian Am & Operator", "Hospital Tanjung Karang", "03-3269 5333"),
+        HospitalContact("Talian Am (Alternatif)", "Hospital Tanjung Karang", "03-3269 5422")
     )
 
     Surface(
