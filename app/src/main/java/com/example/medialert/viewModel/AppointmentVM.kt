@@ -1,18 +1,21 @@
 package com.example.medialert.viewModel
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import com.example.medialert.data.Appointment
+import com.example.medialert.service.AlarmScheduler
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 
-class AppointmentVM : ViewModel() {
+class AppointmentVM(application: Application) : AndroidViewModel(application) {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val alarmScheduler = AlarmScheduler(application)
 
     private val _appointments = mutableStateOf<List<Appointment>>(emptyList())
     val appointments: State<List<Appointment>> = _appointments
@@ -36,7 +39,7 @@ class AppointmentVM : ViewModel() {
 
         appointmentListener?.remove()
 
-        // 1. Find the patient document that has this userId field (Linking Auth to Firestore)
+        // Find the patient document that has this userId field (Linking Auth to Firestore)
         db.collection("patients")
             .whereEqualTo("userId", userId)
             .get()
@@ -47,7 +50,7 @@ class AppointmentVM : ViewModel() {
                     return@addOnSuccessListener
                 }
 
-                // 2. Use the found document (likely ID is IC) to listen to appointments
+                // Use the found document to listen to appointments
                 val patientDocRef = snapshots.documents[0].reference
                 
                 appointmentListener = patientDocRef.collection("appointments")
@@ -88,6 +91,10 @@ class AppointmentVM : ViewModel() {
                                 }
                             }
                             _appointments.value = list
+                            
+                            // Trigger notification scheduling
+                            Log.d("AppointmentVM", "Data changed, syncing alarms...")
+                            alarmScheduler.scheduleAllAlarms()
                         }
                     }
             }

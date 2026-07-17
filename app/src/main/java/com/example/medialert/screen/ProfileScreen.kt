@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,7 +44,6 @@ import com.example.medialert.viewModel.ProfileVM
 fun ProfileScreen(
     viewModel: ProfileVM = viewModel(),
     onEditClick: () -> Unit,
-    onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val user by viewModel.userProfile
@@ -64,8 +61,7 @@ fun ProfileScreen(
             user?.let { profile ->
                 ProfileContent(
                     user = profile,
-                    onEditClick = onEditClick,
-                    onLogoutClick = onLogoutClick
+                    onEditClick = onEditClick
                 )
             } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(text = "Gagal memuat profil.")
@@ -77,8 +73,7 @@ fun ProfileScreen(
 @Composable
 fun ProfileContent(
     user: UserProfile,
-    onEditClick: () -> Unit,
-    onLogoutClick: () -> Unit
+    onEditClick: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     
@@ -172,29 +167,6 @@ fun ProfileContent(
         }
 
         Spacer(modifier = Modifier.height(20.dp))
-
-        Button(
-            onClick = onLogoutClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.error
-            ),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.baseline_exit_to_app_24),
-                contentDescription = null
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Log Keluar",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
     }
 }
 
@@ -256,8 +228,7 @@ fun ProfileScreenPreview() {
                 phoneNumber = "012-3456789",
                 email = "bakri@example.com"
             ),
-            onEditClick = {},
-            onLogoutClick = {}
+            onEditClick = {}
         )
     }
 }

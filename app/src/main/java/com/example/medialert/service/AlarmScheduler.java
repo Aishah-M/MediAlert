@@ -35,35 +35,53 @@ public class AlarmScheduler {
         String userId = FirebaseAuth.getInstance().getUid();
         if (userId == null) return;
         
-        // Async fetch for UI-triggered updates
-        db.collection("patients").document(userId).collection("medications").get()
-                .addOnSuccessListener(this::processMedicationSnapshots);
-        db.collection("patients").document(userId).collection("reminders").get()
-                .addOnSuccessListener(this::processReminderSnapshots);
-        db.collection("patients").document(userId).collection("appointments").get()
-                .addOnSuccessListener(this::processAppointmentSnapshots);
+        Log.d(TAG, "Syncing alarms for user: " + userId);
+
+        // Find the patient document by userId field (Linking Auth to Firestore)
+        db.collection("patients")
+            .whereEqualTo("userId", userId)
+            .get()
+            .addOnSuccessListener(queryDocumentSnapshots -> {
+                if (queryDocumentSnapshots.isEmpty()) {
+                    Log.e(TAG, "No patient profile found with userId field: " + userId);
+                    return;
+                }
+                
+                DocumentSnapshot patientDoc = queryDocumentSnapshots.getDocuments().get(0);
+                String docId = patientDoc.getId(); // This is the Document ID (IC)
+                
+                Log.d(TAG, "Found patient record: " + docId + ". Scheduling sub-collections...");
+
+                // Fetch sub-collections using the correct document ID
+                db.collection("patients").document(docId).collection("medications").get()
+                        .addOnSuccessListener(this::processMedicationSnapshots);
+                db.collection("patients").document(docId).collection("reminders").get()
+                        .addOnSuccessListener(this::processReminderSnapshots);
+                db.collection("patients").document(docId).collection("appointments").get()
+                        .addOnSuccessListener(this::processAppointmentSnapshots);
+            })
+            .addOnFailureListener(e -> Log.e(TAG, "Failed to find patient profile: " + e.getMessage()));
     }
 
-    /**
-     * Synchronous version for use in Workers/Background threads
-     */
     public void scheduleAllAlarmsSync() {
         String userId = FirebaseAuth.getInstance().getUid();
         if (userId == null) return;
 
         try {
-            Log.d(TAG, "Starting Sync Alarm Scheduling...");
+            QuerySnapshot patientQuery = Tasks.await(db.collection("patients").whereEqualTo("userId", userId).get(), 10, TimeUnit.SECONDS);
+            if (patientQuery.isEmpty()) return;
             
-            QuerySnapshot medSnapshots = Tasks.await(db.collection("patients").document(userId).collection("medications").get(), 10, TimeUnit.SECONDS);
+            String docId = patientQuery.getDocuments().get(0).getId();
+            
+            QuerySnapshot medSnapshots = Tasks.await(db.collection("patients").document(docId).collection("medications").get(), 10, TimeUnit.SECONDS);
             processMedicationSnapshots(medSnapshots);
 
-            QuerySnapshot remSnapshots = Tasks.await(db.collection("patients").document(userId).collection("reminders").get(), 10, TimeUnit.SECONDS);
+            QuerySnapshot remSnapshots = Tasks.await(db.collection("patients").document(docId).collection("reminders").get(), 10, TimeUnit.SECONDS);
             processReminderSnapshots(remSnapshots);
 
-            QuerySnapshot apptSnapshots = Tasks.await(db.collection("patients").document(userId).collection("appointments").get(), 10, TimeUnit.SECONDS);
+            QuerySnapshot apptSnapshots = Tasks.await(db.collection("patients").document(docId).collection("appointments").get(), 10, TimeUnit.SECONDS);
             processAppointmentSnapshots(apptSnapshots);
             
-            Log.d(TAG, "Sync Alarm Scheduling Completed Successfully");
         } catch (Exception e) {
             Log.e(TAG, "Sync scheduling failed: " + e.getMessage());
         }
@@ -71,6 +89,7 @@ public class AlarmScheduler {
 
     private void processMedicationSnapshots(QuerySnapshot snapshots) {
         if (snapshots == null) return;
+        Log.d(TAG, "Processing " + snapshots.size() + " medications");
         for (DocumentSnapshot doc : snapshots) {
             String name = doc.getString("name");
             if (name == null) name = doc.getString("medicationName");
@@ -110,6 +129,7 @@ public class AlarmScheduler {
 
     private void processAppointmentSnapshots(QuerySnapshot snapshots) {
         if (snapshots == null) return;
+        Log.d(TAG, "Processing " + snapshots.size() + " appointments");
         for (DocumentSnapshot doc : snapshots) {
             String status = doc.getString("status");
             if (status != null && status.trim().equalsIgnoreCase("Akan datang")) {
@@ -137,7 +157,6 @@ public class AlarmScheduler {
         long startMillis = startTs != null ? startTs.toDate().getTime() : 0;
         long endMillis = endTs != null ? endTs.toDate().getTime() : Long.MAX_VALUE;
 
-        // Date Range Validation
         if (!untilFinish && endMillis < now) return;
 
         if (calendar.getTimeInMillis() < startMillis) {
@@ -202,6 +221,7 @@ public class AlarmScheduler {
                 } else {
                     am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pi);
                 }
+                Log.d(TAG, "APPT SET: " + dept + " (" + label + ") at " + new Date(trigger));
             } catch (Exception e) {
                 Log.e(TAG, "Failed to set appt alarm: " + e.getMessage());
             }

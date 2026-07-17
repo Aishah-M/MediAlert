@@ -118,6 +118,24 @@ fun MediAlertAppContent(
                             )
                         }
                     },
+                    actions = {
+                        if (currentScreen == MediAlertScreen.Profile) {
+                            IconButton(
+                                onClick = {
+                                    try { FirebaseAuth.getInstance().signOut() } catch (e: Exception) {}
+                                    navController.navigate(MediAlertScreen.Login.name) { 
+                                        popUpTo(0) { inclusive = true } 
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.baseline_exit_to_app_24),
+                                    contentDescription = "Log Keluar",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
@@ -232,11 +250,7 @@ fun MediAlertAppContent(
                 
                 composable(route = MediAlertScreen.Profile.name) {
                     ProfileScreen(
-                        onEditClick = { navController.navigate(MediAlertScreen.EditProfile.name) },
-                        onLogoutClick = {
-                            try { FirebaseAuth.getInstance().signOut() } catch (e: Exception) {}
-                            navController.navigate(MediAlertScreen.Login.name) { popUpTo(0) { inclusive = true } }
-                        }
+                        onEditClick = { navController.navigate(MediAlertScreen.EditProfile.name) }
                     )
                 }
                 composable(route = MediAlertScreen.Contact.name) { ContactScreen() }
